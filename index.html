@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Retail Retargeting CRM</title>
+  </head>
+  <body>
+    <div id="root">
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f8fc;color:#003B73;font-family:Arial,sans-serif;font-weight:700;">
+        Loading Smart Retail CRM...
+      </div>
+    </div>
+    <script>
+      window.addEventListener("error", function (event) {
+        var root = document.getElementById("root");
+        if (root) {
+          root.innerHTML = '<div style="min-height:100vh;background:#f5f8fc;color:#102033;font-family:Arial,sans-serif;padding:32px;"><div style="max-width:760px;margin:40px auto;background:white;border:1px solid #D8E3EF;border-radius:8px;padding:24px;box-shadow:0 18px 45px rgba(15,23,42,.10);"><h1 style="margin:0 0 12px;color:#003B73;">Smart Retail CRM runtime error</h1><p style="line-height:1.5;">' + String(event.message || "Unknown browser error") + '</p></div></div>';
+        }
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        var root = document.getElementById("root");
+        if (root) {
+          root.innerHTML = '<div style="min-height:100vh;background:#f5f8fc;color:#102033;font-family:Arial,sans-serif;padding:32px;"><div style="max-width:760px;margin:40px auto;background:white;border:1px solid #D8E3EF;border-radius:8px;padding:24px;box-shadow:0 18px 45px rgba(15,23,42,.10);"><h1 style="margin:0 0 12px;color:#003B73;">Smart Retail CRM startup error</h1><p style="line-height:1.5;">' + String(event.reason && event.reason.message ? event.reason.message : event.reason || "Unknown startup error") + '</p></div></div>';
+        }
+      });
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
