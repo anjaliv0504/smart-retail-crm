@@ -3,12 +3,41 @@ import { initialCustomers } from "../src/data/customers.js";
 const STORE_KEY = "retail-marketing-tool:customers";
 const seedIds = new Set(initialCustomers.map((customer) => customer.id));
 
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  return [value];
+}
+
+function primaryChoice(value, fallback = "") {
+  return asArray(value)[0] || fallback;
+}
+
+function estimatedValueFor(category, brandTier) {
+  const selectedCategory = primaryChoice(category, "Mobile/Smartwatch");
+  const selectedTier = primaryChoice(brandTier, "Mainstream");
+  const values = {
+    "Mobile/Smartwatch": { Budget: 18000, Mainstream: 30000, Premium: 45000, Undecided: 28000 },
+    "Laptop/IT": { Budget: 32000, Mainstream: 55000, Premium: 85000, Undecided: 52000 },
+    "TV/Audio": { Budget: 22000, Mainstream: 48000, Premium: 85000, Undecided: 45000 },
+    "Home Appliances": { Budget: 18000, Mainstream: 42000, Premium: 90000, Undecided: 38000 }
+  };
+  return values[selectedCategory]?.[selectedTier] || values["Mobile/Smartwatch"].Mainstream;
+}
+
+function withCurrentEstimate(customer) {
+  return {
+    ...customer,
+    estimatedValue: estimatedValueFor(customer.category, customer.brandTier)
+  };
+}
+
 function normalizeCustomers(customers) {
-  const realEntries = customers.filter((customer) => !seedIds.has(customer.id) && customer.id < 1000);
-  const userEntries = customers.filter((customer) => customer.id > 1000000000000);
+  const realEntries = customers.filter((customer) => !seedIds.has(customer.id) && customer.id < 1000).map(withCurrentEstimate);
+  const userEntries = customers.filter((customer) => customer.id > 1000000000000).map(withCurrentEstimate);
   const currentSeedRows = initialCustomers.map((customer) => {
     const existing = customers.find((item) => item.id === customer.id);
-    return existing ? { ...customer, ...existing, location: existing.location || customer.location } : customer;
+    return existing ? { ...existing, ...customer } : customer;
   });
 
   return [...userEntries, ...realEntries, ...currentSeedRows]
@@ -50,7 +79,7 @@ async function getCustomers() {
 
   const customers = JSON.parse(raw);
   const normalized = normalizeCustomers(customers);
-  if (normalized.length !== customers.length) {
+  if (JSON.stringify(normalized) !== JSON.stringify(customers)) {
     await saveCustomers(normalized);
   }
 

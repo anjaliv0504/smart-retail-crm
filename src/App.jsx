@@ -15,7 +15,6 @@ import {
   Search,
   Send,
   ShoppingBag,
-  Sparkles,
   Store,
   TrendingUp,
   UserRound,
@@ -141,19 +140,33 @@ function generatePersona(form) {
 function estimatedValueFor(category, brandTier) {
   const selectedCategory = primaryChoice(category, "Mobile/Smartwatch");
   const selectedTier = primaryChoice(brandTier, "Mainstream");
-  const categoryBase = {
-    "Mobile/Smartwatch": 55000,
-    "Laptop/IT": 78000,
-    "TV/Audio": 90000,
-    "Home Appliances": 62000
+  const valueMap = {
+    "Mobile/Smartwatch": {
+      Budget: 18000,
+      Mainstream: 30000,
+      Premium: 45000,
+      Undecided: 28000
+    },
+    "Laptop/IT": {
+      Budget: 32000,
+      Mainstream: 55000,
+      Premium: 85000,
+      Undecided: 52000
+    },
+    "TV/Audio": {
+      Budget: 22000,
+      Mainstream: 48000,
+      Premium: 85000,
+      Undecided: 45000
+    },
+    "Home Appliances": {
+      Budget: 18000,
+      Mainstream: 42000,
+      Premium: 90000,
+      Undecided: 38000
+    }
   };
-  const tierMultiplier = {
-    Premium: 1.35,
-    Mainstream: 1,
-    Budget: 0.72,
-    Undecided: 0.9
-  };
-  return Math.round(categoryBase[selectedCategory] * tierMultiplier[selectedTier]);
+  return valueMap[selectedCategory]?.[selectedTier] || valueMap["Mobile/Smartwatch"].Mainstream;
 }
 
 function profileMessage(customer) {
@@ -417,15 +430,6 @@ function App() {
               />
             ))}
           </nav>
-          <div className="mt-8 rounded-lg border border-reliance-line bg-reliance-sky p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-reliance-deep">
-              <Sparkles className="h-4 w-4" />
-              Live MVP
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Insights stay in browser memory and feed the manager view plus campaign engine instantly.
-            </p>
-          </div>
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
@@ -568,9 +572,24 @@ function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
       subtitle="Fast floor-staff capture for walkout insights, tuned for mobile counters and handheld use."
       icon={ClipboardList}
     >
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mx-auto grid max-w-6xl gap-5">
+        <div className="rounded-lg border border-reliance-line bg-white p-4 shadow-sm md:flex md:items-center md:justify-between md:gap-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-reliance-sky text-reliance-blue">
+              <ShoppingBag className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-950">Predicted Persona</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Generated from whatever the agent is able to capture.</p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-lg border border-dashed border-reliance-line bg-slate-50 px-4 py-3 md:mt-0 md:min-w-64">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
+            <p className="mt-1 text-xl font-bold text-reliance-deep">{generatePersona(form)}</p>
+          </div>
+        </div>
         <form onSubmit={submitInsight} className="rounded-lg border border-reliance-line bg-white p-4 shadow-sm md:p-6">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <TextField label="Customer Name" value={form.name} onChange={(value) => updateForm("name", value)} icon={UserRound} />
             <TextField label="Number" value={form.phone} onChange={(value) => updateForm("phone", value)} icon={Phone} inputMode="numeric" />
             <TextField label="Pin Code / City" value={form.location} onChange={(value) => updateForm("location", value)} icon={Store} />
@@ -582,7 +601,7 @@ function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
             <MultiOptionField label="Q6. Competitor" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} />
             <MultiOptionField label="Q7. Price Gap (%)" value={form.priceGap} options={priceGaps} onToggle={(value) => toggleFormChoice("priceGap", value)} />
             <MultiOptionField label="Q8. Financial Hook" value={form.financialHook} options={financialHooks} onToggle={(value) => toggleFormChoice("financialHook", value)} />
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 xl:col-span-3">
               <div className="rounded-lg border border-dashed border-reliance-line bg-reliance-sky px-4 py-3 text-sm font-bold text-reliance-deep">
                 Optional follow-up details
               </div>
@@ -598,20 +617,6 @@ function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
             Log Customer Insight
           </button>
         </form>
-
-        <div className="rounded-lg border border-reliance-line bg-white p-5 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-reliance-sky text-reliance-blue">
-            <ShoppingBag className="h-6 w-6" />
-          </div>
-          <h3 className="mt-5 text-xl font-bold text-slate-950">Predicted Persona</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            The tag is generated at submit from urgency, buyer type, knowledge level, brand tier, and walkout behavior.
-          </p>
-          <div className="mt-5 rounded-lg border border-dashed border-reliance-line bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</p>
-            <p className="mt-1 text-2xl font-bold text-reliance-deep">{generatePersona(form)}</p>
-          </div>
-        </div>
       </div>
     </SectionShell>
   );
