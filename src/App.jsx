@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BadgeIndianRupee,
   BarChart3,
@@ -22,6 +22,7 @@ import {
   UsersRound,
   X
 } from "lucide-react";
+import { initialCustomers } from "./data/customers.js";
 
 const categories = ["Mobile/Smartwatch", "Laptop/IT", "TV/Audio", "Home Appliances"];
 const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
@@ -61,63 +62,6 @@ const emptyForm = {
   financialHook: [],
   urgency: []
 };
-
-const initialCustomers = [
-  {
-    id: 1,
-    name: "Aarav Mehta",
-    phone: "9876543210",
-    category: "Mobile/Smartwatch",
-    buyingDriver: "Deal-Hunter",
-    techKnowledge: "Tech-Savvy",
-    decisionMaker: "Sole Decision",
-    brandTier: "Premium",
-    walkoutReason: "Online Price Mismatch",
-    competitor: "Amazon/Flipkart",
-    priceGap: "2% to 5%",
-    financialHook: "Credit Card Discount",
-    urgency: "Today/Immediate",
-    personaTag: "Urgent Deal-Hunter",
-    createdAt: "Today, 11:15 AM",
-    estimatedValue: 84000
-  },
-  {
-    id: 2,
-    name: "Priya Nair",
-    phone: "9988776655",
-    category: "Home Appliances",
-    buyingDriver: "Family",
-    techKnowledge: "Needs Guidance",
-    decisionMaker: "Needs Approval",
-    brandTier: "Mainstream",
-    walkoutReason: "Finance/Card Issue",
-    competitor: "Croma/Vijay Sales",
-    priceGap: "Not a price issue",
-    financialHook: "No-Cost EMI",
-    urgency: "This Week",
-    personaTag: "Family Planner",
-    createdAt: "Today, 12:40 PM",
-    estimatedValue: 52000
-  },
-  {
-    id: 3,
-    name: "Kabir Singh",
-    phone: "9123456789",
-    category: "TV/Audio",
-    buyingDriver: "Corporate",
-    techKnowledge: "Status-Driven",
-    decisionMaker: "Corporate Approval",
-    brandTier: "Premium",
-    walkoutReason: "Color/Model Out of Stock",
-    competitor: "Local Dealer",
-    priceGap: "Under 2%",
-    financialHook: "Exchange Bonus",
-    urgency: "Next Week/Month",
-    personaTag: "Corporate Premium",
-    createdAt: "Today, 03:05 PM",
-    estimatedValue: 118000
-  }
-];
 
 const navItems = [
   { key: "agent", label: "Agent Input Portal", icon: ClipboardList },
@@ -306,6 +250,7 @@ function campaignMessage(customer, campaignDetails, triggerType) {
 function App() {
   const [activePanel, setActivePanel] = useState("agent");
   const [customers, setCustomers] = useState(initialCustomers);
+  const [storageStatus, setStorageStatus] = useState("Loading shared data...");
   const [form, setForm] = useState(emptyForm);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [campaign, setCampaign] = useState({
@@ -318,6 +263,42 @@ function App() {
   });
   const [matches, setMatches] = useState([]);
   const [hasRunCampaign, setHasRunCampaign] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCustomers() {
+      try {
+        const response = await fetch("/api/customers");
+        const data = await response.json();
+        if (!active) return;
+
+        if (Array.isArray(data.customers)) {
+          setCustomers(data.customers);
+        }
+
+        setStorageStatus(
+          data.storage === "vercel-kv"
+            ? "Shared database connected"
+            : "Demo data loaded - connect Vercel KV for shared storage"
+        );
+      } catch {
+        if (!active) return;
+        const localCustomers = window.localStorage.getItem("retail-marketing-tool-customers");
+        if (localCustomers) {
+          setCustomers(JSON.parse(localCustomers));
+          setStorageStatus("Local browser storage active");
+        } else {
+          setStorageStatus("Demo data loaded");
+        }
+      }
+    }
+
+    loadCustomers();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const topWalkoutReason = useMemo(() => {
     const counts = customers.reduce((acc, customer) => {
@@ -350,7 +331,7 @@ function App() {
     });
   }
 
-  function submitInsight(event) {
+  async function submitInsight(event) {
     event.preventDefault();
     const name = form.name.trim();
     const phone = cleanPhone(form.phone);
@@ -377,7 +358,25 @@ function App() {
       estimatedValue: estimatedValueFor(form.category, form.brandTier)
     };
 
-    setCustomers((current) => [newCustomer, ...current]);
+    const optimisticCustomers = [newCustomer, ...customers];
+    setCustomers(optimisticCustomers);
+    window.localStorage.setItem("retail-marketing-tool-customers", JSON.stringify(optimisticCustomers));
+
+    try {
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customer: newCustomer })
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.detail || data.error || "Save failed");
+      if (Array.isArray(data.customers)) setCustomers(data.customers);
+      setStorageStatus("Shared database connected");
+    } catch {
+      setStorageStatus("Saved locally - connect Vercel KV for all-device storage");
+    }
+
     setForm(emptyForm);
     setActivePanel("dashboard");
   }
@@ -426,18 +425,21 @@ function App() {
                   <Store className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-reliance-deep">Smart Retail CRM</p>
-                  <p className="text-xs text-slate-500">Retargeting MVP</p>
+                  <p className="text-sm font-bold text-reliance-deep">Smart Retail Marketing Tool</p>
+                  <p className="text-xs text-slate-500">Retail Marketing MVP</p>
                 </div>
               </div>
               <div className="hidden lg:block">
                 <p className="text-sm font-medium uppercase tracking-wide text-reliance-blue">Reliance Digital Inspired</p>
-                <h1 className="text-2xl font-bold text-slate-950">Smart Retail Retargeting CRM</h1>
+                <h1 className="text-2xl font-bold text-slate-950">Smart Retail Marketing Tool</h1>
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-reliance-line bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
                 <UsersRound className="h-4 w-4 text-reliance-blue" />
                 {customers.length} active leads
               </div>
+            </div>
+            <div className="mt-3 inline-flex rounded-lg bg-reliance-sky px-3 py-1.5 text-xs font-bold text-reliance-deep">
+              {storageStatus}
             </div>
             <nav className="mt-3 grid grid-cols-3 gap-2 lg:hidden">
               {navItems.map((item) => (
@@ -499,8 +501,8 @@ function BrandBlock() {
         <Store className="h-6 w-6" />
       </div>
       <div>
-        <p className="text-base font-bold text-reliance-deep">Smart Retail CRM</p>
-        <p className="text-sm text-slate-500">Retargeting MVP</p>
+        <p className="text-base font-bold text-reliance-deep">Smart Retail Marketing Tool</p>
+        <p className="text-sm text-slate-500">Retail Marketing MVP</p>
       </div>
     </div>
   );
@@ -537,7 +539,9 @@ function SectionShell({ eyebrow, title, subtitle, icon: Icon, children, compact 
             {eyebrow}
           </div>
           <h2 className={`${compact ? "text-2xl" : "text-3xl"} mt-2 font-bold text-slate-950`}>{title}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{subtitle}</p>
+          <p className="mt-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+            Made By Anjali - Reliance Retail Intern
+          </p>
         </div>
       </div>
       {children}
@@ -654,7 +658,7 @@ function MultiOptionField({ label, value, options, onToggle, optional = false })
               key={option}
               type="button"
               onClick={() => onToggle(option)}
-              className={`min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition ${
+              className={`min-h-11 rounded-lg border px-3 py-2 text-left text-sm font-semibold leading-5 break-words transition ${
                 isSelected
                   ? "border-reliance-blue bg-reliance-blue text-white shadow-sm"
                   : "border-reliance-line bg-white text-slate-700 hover:border-reliance-blue hover:bg-reliance-sky"

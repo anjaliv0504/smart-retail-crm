@@ -18,7 +18,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-slate-100 p-6 text-slate-900">
           <div className="mx-auto mt-10 max-w-3xl rounded-lg border border-reliance-line bg-white p-6 shadow-soft">
-            <p className="text-sm font-bold uppercase tracking-wide text-reliance-blue">Smart Retail CRM runtime error</p>
+            <p className="text-sm font-bold uppercase tracking-wide text-reliance-blue">Smart Retail Marketing Tool runtime error</p>
             <h1 className="mt-2 text-2xl font-bold text-slate-950">The app hit a render error.</h1>
             <pre className="mt-4 overflow-auto rounded-lg bg-slate-950 p-4 text-sm text-white">
               {this.state.error.message}
