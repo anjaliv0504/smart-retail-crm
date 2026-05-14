@@ -51,6 +51,7 @@ const anyOption = "Any";
 const emptyForm = {
   name: "",
   phone: "",
+  location: "",
   category: [],
   buyingDriver: [],
   techKnowledge: [],
@@ -111,6 +112,21 @@ function countChoices(items, field) {
   return Object.entries(counts)
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value);
+}
+
+function customerDate(customer) {
+  return customer.createdAtIso ? new Date(customer.createdAtIso) : new Date();
+}
+
+function isWithinRange(customer, range) {
+  if (range === "all") return true;
+  const now = new Date();
+  const date = customerDate(customer);
+  const ageMs = now.getTime() - date.getTime();
+  if (range === "today") return date.toDateString() === now.toDateString();
+  if (range === "week") return ageMs <= 7 * 24 * 60 * 60 * 1000;
+  if (range === "month") return ageMs <= 30 * 24 * 60 * 60 * 1000;
+  return true;
 }
 
 function generatePersona(form) {
@@ -251,6 +267,7 @@ function App() {
   const [activePanel, setActivePanel] = useState("agent");
   const [customers, setCustomers] = useState(initialCustomers);
   const [storageStatus, setStorageStatus] = useState("Loading shared data...");
+  const [analyticsRange, setAnalyticsRange] = useState("week");
   const [form, setForm] = useState(emptyForm);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [campaign, setCampaign] = useState({
@@ -300,22 +317,27 @@ function App() {
     };
   }, []);
 
+  const dashboardCustomers = useMemo(
+    () => customers.filter((customer) => isWithinRange(customer, analyticsRange)),
+    [customers, analyticsRange]
+  );
+
   const topWalkoutReason = useMemo(() => {
-    const counts = customers.reduce((acc, customer) => {
+    const counts = dashboardCustomers.reduce((acc, customer) => {
       asArray(customer.walkoutReason).forEach((reason) => {
         acc[reason] = (acc[reason] || 0) + 1;
       });
       return acc;
     }, {});
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "No data";
-  }, [customers]);
+  }, [dashboardCustomers]);
 
   const revenueAtRisk = useMemo(
-    () => customers.reduce((sum, customer) => sum + customer.estimatedValue, 0),
-    [customers]
+    () => dashboardCustomers.reduce((sum, customer) => sum + customer.estimatedValue, 0),
+    [dashboardCustomers]
   );
 
-  const urgentCount = customers.filter((customer) => hasChoice(customer.urgency, "Today/Immediate")).length;
+  const urgentCount = dashboardCustomers.filter((customer) => hasChoice(customer.urgency, "Today/Immediate")).length;
 
   function updateForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -333,20 +355,8 @@ function App() {
 
   async function submitInsight(event) {
     event.preventDefault();
-    const name = form.name.trim();
+    const name = form.name.trim() || "Walk-in Customer";
     const phone = cleanPhone(form.phone);
-    const requiredAnswered = [
-      form.category,
-      form.buyingDriver,
-      form.techKnowledge,
-      form.brandTier,
-      form.walkoutReason,
-      form.competitor,
-      form.priceGap,
-      form.financialHook
-    ].every((value) => asArray(value).length > 0);
-
-    if (!name || phone.length !== 10 || !requiredAnswered) return;
 
     const newCustomer = {
       ...form,
@@ -355,6 +365,7 @@ function App() {
       phone,
       personaTag: generatePersona(form),
       createdAt: "Just now",
+      createdAtIso: new Date().toISOString(),
       estimatedValue: estimatedValueFor(form.category, form.brandTier)
     };
 
@@ -438,9 +449,6 @@ function App() {
                 {customers.length} active leads
               </div>
             </div>
-            <div className="mt-3 inline-flex rounded-lg bg-reliance-sky px-3 py-1.5 text-xs font-bold text-reliance-deep">
-              {storageStatus}
-            </div>
             <nav className="mt-3 grid grid-cols-3 gap-2 lg:hidden">
               {navItems.map((item) => (
                 <button
@@ -467,7 +475,10 @@ function App() {
             )}
             {activePanel === "dashboard" && (
               <ManagerDashboard
-                customers={customers}
+                customers={dashboardCustomers}
+                allCustomers={customers}
+                analyticsRange={analyticsRange}
+                setAnalyticsRange={setAnalyticsRange}
                 topWalkoutReason={topWalkoutReason}
                 revenueAtRisk={revenueAtRisk}
                 urgentCount={urgentCount}
@@ -562,6 +573,7 @@ function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
           <div className="grid gap-4 md:grid-cols-2">
             <TextField label="Customer Name" value={form.name} onChange={(value) => updateForm("name", value)} icon={UserRound} />
             <TextField label="Number" value={form.phone} onChange={(value) => updateForm("phone", value)} icon={Phone} inputMode="numeric" />
+            <TextField label="Pin Code / City" value={form.location} onChange={(value) => updateForm("location", value)} icon={Store} />
             <MultiOptionField label="Q1. Product Category" value={form.category} options={categories} onToggle={(value) => toggleFormChoice("category", value)} />
             <MultiOptionField label="Q2. Buying Driver" value={form.buyingDriver} options={buyingDrivers} onToggle={(value) => toggleFormChoice("buyingDriver", value)} />
             <MultiOptionField label="Q3. Tech Knowledge" value={form.techKnowledge} options={techKnowledge} onToggle={(value) => toggleFormChoice("techKnowledge", value)} />
@@ -617,7 +629,6 @@ function TextField({ label, value, onChange, icon: Icon, inputMode = "text" }) {
           inputMode={inputMode}
           className="min-w-0 flex-1 border-0 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
           placeholder={label}
-          required
         />
       </span>
     </label>
@@ -674,9 +685,12 @@ function MultiOptionField({ label, value, options, onToggle, optional = false })
   );
 }
 
-function ManagerDashboard({ customers, topWalkoutReason, revenueAtRisk, urgentCount, onView }) {
+function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalyticsRange, topWalkoutReason, revenueAtRisk, urgentCount, onView }) {
+  const financeBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Finance/Card Issue")).length;
+  const highPriceGap = customers.filter((customer) => hasChoice(customer.priceGap, "Above 5%")).length;
+  const avgRisk = customers.length ? Math.round(revenueAtRisk / customers.length) : 0;
   const metrics = [
-    { label: "Total Walkouts Today", value: customers.length, icon: UsersRound, note: "Logged floor insights" },
+    { label: "Filtered Walkouts", value: customers.length, icon: UsersRound, note: `${allCustomers.length} total stored leads` },
     { label: "Top Walkout Reason", value: topWalkoutReason, icon: Search, note: "Highest frequency signal" },
     { label: "Revenue at Risk", value: rupees(revenueAtRisk), icon: IndianRupee, note: "Estimated basket value" },
     { label: "Immediate Buyers", value: urgentCount, icon: TrendingUp, note: "Needs same-day recovery" }
@@ -685,6 +699,7 @@ function ManagerDashboard({ customers, topWalkoutReason, revenueAtRisk, urgentCo
   const categoryData = countChoices(customers, "category");
   const urgencyData = countChoices(customers, "urgency");
   const brandData = countChoices(customers, "brandTier");
+  const competitorData = countChoices(customers, "competitor");
 
   return (
     <SectionShell
@@ -694,10 +709,42 @@ function ManagerDashboard({ customers, topWalkoutReason, revenueAtRisk, urgentCo
       icon={BarChart3}
       compact
     >
+      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-reliance-line bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-base font-bold text-slate-950">Analytics Window</h3>
+          <p className="text-sm text-slate-500">Filter every metric, chart, and customer row by time period.</p>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            ["today", "Daily"],
+            ["week", "Weekly"],
+            ["month", "Monthly"],
+            ["all", "All"]
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setAnalyticsRange(value)}
+              className={`h-10 rounded-lg px-3 text-sm font-bold transition ${
+                analyticsRange === value ? "bg-reliance-blue text-white" : "bg-slate-100 text-slate-600 hover:bg-reliance-sky"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />
         ))}
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <InsightCard label="Average Risk Per Lead" value={rupees(avgRisk)} helper="Revenue risk divided by filtered leads" />
+        <InsightCard label="Finance Blockers" value={financeBlockers} helper="Customers blocked by card, EMI, or approval friction" />
+        <InsightCard label="High Price-Gap Cases" value={highPriceGap} helper="Above 5% price mismatch signals" />
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_1fr]">
@@ -718,6 +765,12 @@ function ManagerDashboard({ customers, topWalkoutReason, revenueAtRisk, urgentCo
         </ChartPanel>
       </div>
 
+      <div className="mt-4">
+        <ChartPanel title="Competitor Pressure" subtitle="Where customers are comparing before purchase">
+          <HorizontalBars data={competitorData} />
+        </ChartPanel>
+      </div>
+
       <div className="mt-6 overflow-hidden rounded-lg border border-reliance-line bg-white shadow-sm">
         <div className="flex flex-col gap-2 border-b border-reliance-line px-4 py-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -731,10 +784,11 @@ function ManagerDashboard({ customers, topWalkoutReason, revenueAtRisk, urgentCo
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[920px] w-full text-left">
+          <table className="min-w-[1040px] w-full text-left">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">City / Pin</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Persona Tag</th>
                 <th className="px-4 py-3">Walkout Reason</th>
@@ -749,6 +803,7 @@ function ManagerDashboard({ customers, topWalkoutReason, revenueAtRisk, urgentCo
                     <div className="font-bold text-slate-900">{customer.name}</div>
                     <div className="text-xs text-slate-500">{customer.createdAt}</div>
                   </td>
+                  <td className="px-4 py-4 text-sm text-slate-700">{customer.location || "Not captured"}</td>
                   <td className="px-4 py-4 text-sm font-medium text-slate-700">{displayValue(customer.category)}</td>
                   <td className="px-4 py-4">
                     <span className="inline-flex rounded-lg bg-reliance-sky px-3 py-1 text-sm font-bold text-reliance-deep">
@@ -794,6 +849,16 @@ function MetricCard({ label, value, icon: Icon, note }) {
         </div>
       </div>
       <p className="mt-4 text-sm text-slate-500">{note}</p>
+    </div>
+  );
+}
+
+function InsightCard({ label, value, helper }) {
+  return (
+    <div className="rounded-lg border border-reliance-line bg-white p-4 shadow-sm">
+      <p className="text-sm font-semibold text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-reliance-deep">{value}</p>
+      <p className="mt-2 text-sm leading-5 text-slate-500">{helper}</p>
     </div>
   );
 }
@@ -911,6 +976,7 @@ function ProfileModal({ customer, onClose }) {
   const waUrl = `https://wa.me/91${cleanPhone(customer.phone)}?text=${encodeURIComponent(message)}`;
   const detailRows = [
     ["WhatsApp", customer.phone],
+    ["City / Pin Code", customer.location || "Not captured"],
     ["Product Category", displayValue(customer.category)],
     ["Buying Driver", displayValue(customer.buyingDriver)],
     ["Tech Knowledge", displayValue(customer.techKnowledge)],

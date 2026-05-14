@@ -1,6 +1,19 @@
 import { initialCustomers } from "../src/data/customers.js";
 
 const STORE_KEY = "retail-marketing-tool:customers";
+const seedIds = new Set(initialCustomers.map((customer) => customer.id));
+
+function normalizeCustomers(customers) {
+  const realEntries = customers.filter((customer) => !seedIds.has(customer.id) && customer.id < 1000);
+  const userEntries = customers.filter((customer) => customer.id > 1000000000000);
+  const currentSeedRows = initialCustomers.map((customer) => {
+    const existing = customers.find((item) => item.id === customer.id);
+    return existing ? { ...customer, ...existing, location: existing.location || customer.location } : customer;
+  });
+
+  return [...userEntries, ...realEntries, ...currentSeedRows]
+    .filter((customer, index, list) => list.findIndex((item) => item.id === customer.id) === index);
+}
 
 async function kvRequest(command, args = []) {
   const url = process.env.KV_REST_API_URL;
@@ -35,7 +48,13 @@ async function getCustomers() {
     return initialCustomers;
   }
 
-  return JSON.parse(raw);
+  const customers = JSON.parse(raw);
+  const normalized = normalizeCustomers(customers);
+  if (normalized.length !== customers.length) {
+    await saveCustomers(normalized);
+  }
+
+  return normalized;
 }
 
 async function saveCustomers(customers) {

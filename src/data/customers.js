@@ -1,97 +1,39 @@
-const baseCustomers = [
-  ["Aarav Mehta", "9876543210", "Mobile/Smartwatch", "Deal-Hunter", "Tech-Savvy", "Sole Decision", "Premium", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "Today/Immediate", "Urgent Deal-Hunter", 84000],
-  ["Priya Nair", "9988776655", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Mainstream", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "This Week", "Family Planner", 52000],
-  ["Kabir Singh", "9123456789", "TV/Audio", "Corporate", "Status-Driven", "Corporate Approval", "Premium", "Color/Model Out of Stock", "Local Dealer", "Under 2%", "Exchange Bonus", "Next Week/Month", "Corporate Premium", 118000]
+const seedRows = [
+  ["Aarav Mehta", "9876543210", "Mumbai 400053", "Mobile/Smartwatch", "Deal-Hunter", "Tech-Savvy", "Sole Decision", "Premium", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "Today/Immediate", "Urgent Deal-Hunter", 84000, 0],
+  ["Priya Nair", "9988776655", "Thane 400601", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Mainstream", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "This Week", "Family Planner", 52000, 1],
+  ["Kabir Singh", "9123456789", "Pune 411001", "TV/Audio", "Corporate", "Status-Driven", "Corporate Approval", "Premium", "Color/Model Out of Stock", "Local Dealer", "Under 2%", "Exchange Bonus", "Next Week/Month", "Corporate Premium", 118000, 3],
+  ["Riya Sharma", "9600000001", "Delhi 110001", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Online Price Mismatch", "Amazon/Flipkart", "Above 5%", "Credit Card Discount", "Today/Immediate", "Urgent Individual", 78000, 6],
+  ["Vivaan Rao", "9600000002", "Bengaluru 560001", "Mobile/Smartwatch", "Deal-Hunter", "Aggressive Negotiator", "Influencer Present", "Budget", "Finance/Card Issue", "Croma/Vijay Sales", "2% to 5%", "No-Cost EMI", "This Week", "Budget Deal-Hunter", 39600, 8],
+  ["Meera Iyer", "9600000003", "Chennai 600017", "TV/Audio", "Family", "Needs Guidance", "Needs Approval", "Mainstream", "Just Browsing", "No comparison", "Not a price issue", "Exchange Bonus", "Window Shopping", "Guided Shopper", 90000, 12],
+  ["Arjun Kapoor", "9600000004", "Jaipur 302001", "Home Appliances", "Corporate", "Status-Driven", "Corporate Approval", "Premium", "Color/Model Out of Stock", "Local Dealer", "Under 2%", "Upfront Cash", "Next Week/Month", "Corporate Buyer", 83700, 16],
+  ["Sana Khan", "9600000005", "Hyderabad 500001", "Mobile/Smartwatch", "Individual", "Needs Guidance", "Sole Decision", "Undecided", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "This Week", "Price Watcher", 49500, 22],
+  ["Dev Patel", "9600000006", "Ahmedabad 380001", "Laptop/IT", "Deal-Hunter", "Tech-Savvy", "Sole Decision", "Premium", "Finance/Card Issue", "Croma/Vijay Sales", "Above 5%", "No-Cost EMI", "Today/Immediate", "Urgent Deal-Hunter", 105300, 28],
+  ["Nisha Gupta", "9600000007", "Kolkata 700001", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Budget", "Just Browsing", "No comparison", "Not a price issue", "Exchange Bonus", "Next Week/Month", "Guided Shopper", 44640, 35]
 ];
 
-const names = [
-  "Riya Sharma", "Vivaan Rao", "Meera Iyer", "Arjun Kapoor", "Sana Khan", "Dev Patel", "Nisha Gupta", "Karan Malhotra",
-  "Anaya Das", "Rohan Verma", "Ishita Sen", "Yash Bansal", "Tara Joshi", "Aditya Menon", "Kiara Shah", "Nikhil Jain",
-  "Pooja Sinha", "Harsh Agarwal", "Simran Kaur", "Rahul Chawla", "Neha Reddy", "Manav Bhatia", "Aisha Mirza", "Varun Saxena",
-  "Dia Chatterjee", "Om Prakash", "Tanvi Arora", "Sahil Grover", "Lavanya Pillai", "Akash Suri", "Maya Thomas", "Rudra Vyas",
-  "Anika Bose", "Jay Mehta", "Shreya Kulkarni", "Ibrahim Sheikh", "Mitali Roy", "Parth Nanda", "Avni Desai", "Rehan Ali",
-  "Sanya Gill", "Raghav Mathur"
-];
-
-const categories = ["Mobile/Smartwatch", "Laptop/IT", "TV/Audio", "Home Appliances"];
-const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
-const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Aggressive Negotiator"];
-const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
-const brandTiers = ["Premium", "Mainstream", "Budget", "Undecided"];
-const walkoutReasons = ["Online Price Mismatch", "Color/Model Out of Stock", "Finance/Card Issue", "Just Browsing"];
-const competitors = ["Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "No comparison"];
-const priceGaps = ["Under 2%", "2% to 5%", "Above 5%", "Not a price issue"];
-const financialHooks = ["Exchange Bonus", "No-Cost EMI", "Credit Card Discount", "Upfront Cash"];
-const urgencies = ["Today/Immediate", "This Week", "Next Week/Month", "Window Shopping"];
-
-function pick(list, index, offset = 0) {
-  return list[(index + offset) % list.length];
+function daysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
 }
 
-function valueFor(category, tier) {
-  const base = {
-    "Mobile/Smartwatch": 55000,
-    "Laptop/IT": 78000,
-    "TV/Audio": 90000,
-    "Home Appliances": 62000
-  }[category];
-  const multiplier = { Premium: 1.35, Mainstream: 1, Budget: 0.72, Undecided: 0.9 }[tier];
-  return Math.round(base * multiplier);
-}
-
-function personaFor(urgency, driver, tier, reason) {
-  if (urgency === "Today/Immediate") return `Urgent ${driver}`;
-  if (driver === "Corporate") return "Corporate Buyer";
-  if (tier === "Premium") return "Premium Seeker";
-  if (reason === "Online Price Mismatch") return "Price Watcher";
-  return `${tier} ${driver}`;
-}
-
-const generatedCustomers = names.map((name, index) => {
-  const category = pick(categories, index);
-  const buyingDriver = pick(buyingDrivers, index, 1);
-  const brandTier = pick(brandTiers, index, 2);
-  const walkoutReason = pick(walkoutReasons, index, 3);
-  const urgency = pick(urgencies, index, 1);
-
-  return {
-    id: 1000 + index,
-    name,
-    phone: `9${String(600000000 + index * 73129).slice(0, 9)}`,
-    category,
-    buyingDriver,
-    techKnowledge: pick(techKnowledge, index, 2),
-    decisionMaker: pick(decisionMakers, index, 1),
-    brandTier,
-    walkoutReason,
-    competitor: pick(competitors, index, 2),
-    priceGap: pick(priceGaps, index),
-    financialHook: pick(financialHooks, index, 3),
-    urgency,
-    personaTag: personaFor(urgency, buyingDriver, brandTier, walkoutReason),
-    createdAt: `Today, ${String(10 + (index % 9)).padStart(2, "0")}:${String((index * 7) % 60).padStart(2, "0")} ${index % 2 ? "PM" : "AM"}`,
-    estimatedValue: valueFor(category, brandTier)
-  };
-});
-
-export const initialCustomers = [
-  ...baseCustomers.map((customer, index) => ({
-    id: index + 1,
-    name: customer[0],
-    phone: customer[1],
-    category: customer[2],
-    buyingDriver: customer[3],
-    techKnowledge: customer[4],
-    decisionMaker: customer[5],
-    brandTier: customer[6],
-    walkoutReason: customer[7],
-    competitor: customer[8],
-    priceGap: customer[9],
-    financialHook: customer[10],
-    urgency: customer[11],
-    personaTag: customer[12],
-    createdAt: "Today, 11:15 AM",
-    estimatedValue: customer[13]
-  })),
-  ...generatedCustomers
-];
+export const initialCustomers = seedRows.map((row, index) => ({
+  id: index + 1,
+  name: row[0],
+  phone: row[1],
+  location: row[2],
+  category: row[3],
+  buyingDriver: row[4],
+  techKnowledge: row[5],
+  decisionMaker: row[6],
+  brandTier: row[7],
+  walkoutReason: row[8],
+  competitor: row[9],
+  priceGap: row[10],
+  financialHook: row[11],
+  urgency: row[12],
+  personaTag: row[13],
+  estimatedValue: row[14],
+  createdAtIso: daysAgo(row[15]),
+  createdAt: row[15] === 0 ? "Today" : `${row[15]} days ago`
+}));
