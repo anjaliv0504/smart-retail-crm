@@ -24,15 +24,15 @@ import {
 import { initialCustomers } from "./data/customers.js";
 
 const categories = ["Mobile", "Wearables", "Laptop/IT", "Home Appliances", "Gaming", "New Age Gadgets"];
-const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
-const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Early Adopter"];
+const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter", "Student", "Gift Purchase"];
+const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Early Adopter", "Explorer", "Impulse Buyer"];
 const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
 const brandTiers = ["Premium", "Mainstream", "Budget", "Undecided"];
 const walkoutReasons = ["Online Price Mismatch", "Color Not Available", "Model Not Available", "Finance Issue", "Card Issue", "Brand Preference", "Budget Constraint", "Exchange Concern", "Service Concern", "Just Browsing"];
 const competitors = ["Brand Store", "Brand Store - Samsung", "Brand Store - Apple", "Brand Store - LG", "Brand Store - Sony", "Brand Store - HP", "Brand Store - Lenovo", "Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "No comparison"];
 const priceGaps = ["Under 2%", "2% to 5%", "Above 5%", "Not a price issue"];
 const financialHooks = ["Exchange Bonus", "No-Cost EMI", "Credit Card Discount", "Extended Warranty"];
-const storeSources = ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral", "Social Media"];
+const storeSources = ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral", "Social Media", "Hoardings"];
 const desiredBrands = ["Samsung", "Apple", "LG", "Sony", "HP", "Lenovo", "Dell", "Asus", "Acer", "Whirlpool", "Bosch", "IFB", "Vivo", "Oppo", "OnePlus", "Undecided"];
 const triggerTypes = [
   "New Card Discount",
@@ -49,12 +49,60 @@ const anyOption = "Any";
 
 const locationSuggestions = [
   ["sector 29 gurugram", "Sector 29, Gurugram 122001"],
+  ["sector 4 gurugram", "Sector 4, Gurugram 122001"],
+  ["sector 5 gurugram", "Sector 5, Gurugram 122001"],
+  ["sector 7 gurugram", "Sector 7, Gurugram 122001"],
+  ["sector 9 gurugram", "Sector 9, Gurugram 122001"],
+  ["sector 10 gurugram", "Sector 10, Gurugram 122001"],
   ["sector 14 gurugram", "Sector 14, Gurugram 122001"],
+  ["sector 15 gurugram", "Sector 15, Gurugram 122001"],
+  ["sector 21 gurugram", "Sector 21, Gurugram 122016"],
+  ["sector 22 gurugram", "Sector 22, Gurugram 122015"],
+  ["sector 23 gurugram", "Sector 23, Gurugram 122017"],
+  ["sector 27 gurugram", "Sector 27, Gurugram 122009"],
+  ["sector 28 gurugram", "Sector 28, Gurugram 122002"],
   ["sector 31 gurugram", "Sector 31, Gurugram 122001"],
+  ["sector 32 gurugram", "Sector 32, Gurugram 122001"],
+  ["sector 37 gurugram", "Sector 37, Gurugram 122004"],
+  ["sector 38 gurugram", "Sector 38, Gurugram 122001"],
+  ["sector 39 gurugram", "Sector 39, Gurugram 122003"],
+  ["sector 40 gurugram", "Sector 40, Gurugram 122001"],
+  ["sector 43 gurugram", "Sector 43, Gurugram 122002"],
+  ["sector 44 gurugram", "Sector 44, Gurugram 122003"],
+  ["sector 45 gurugram", "Sector 45, Gurugram 122003"],
+  ["sector 46 gurugram", "Sector 46, Gurugram 122003"],
+  ["sector 47 gurugram", "Sector 47, Gurugram 122018"],
+  ["sector 48 gurugram", "Sector 48, Gurugram 122018"],
+  ["sector 49 gurugram", "Sector 49, Gurugram 122018"],
+  ["sector 50 gurugram", "Sector 50, Gurugram 122018"],
+  ["sector 51 gurugram", "Sector 51, Gurugram 122003"],
+  ["sector 52 gurugram", "Sector 52, Gurugram 122003"],
+  ["sector 53 gurugram", "Sector 53, Gurugram 122002"],
+  ["sector 54 gurugram", "Sector 54, Gurugram 122002"],
   ["sector 56 gurugram", "Sector 56, Gurugram 122011"],
+  ["sector 57 gurugram", "Sector 57, Gurugram 122011"],
+  ["sector 65 gurugram", "Sector 65, Gurugram 122102"],
+  ["sector 66 gurugram", "Sector 66, Gurugram 122102"],
+  ["sector 67 gurugram", "Sector 67, Gurugram 122102"],
+  ["sector 70 gurugram", "Sector 70, Gurugram 122101"],
+  ["sector 82 gurugram", "Sector 82, Gurugram 122004"],
+  ["sector 83 gurugram", "Sector 83, Gurugram 122004"],
+  ["sector 84 gurugram", "Sector 84, Gurugram 122004"],
+  ["sector 90 gurugram", "Sector 90, Gurugram 122505"],
   ["dlf phase 1 gurugram", "DLF Phase 1, Gurugram 122002"],
   ["dlf phase 2 gurugram", "DLF Phase 2, Gurugram 122008"],
+  ["dlf phase 3 gurugram", "DLF Phase 3, Gurugram 122010"],
+  ["dlf phase 4 gurugram", "DLF Phase 4, Gurugram 122009"],
+  ["dlf phase 5 gurugram", "DLF Phase 5, Gurugram 122002"],
   ["cyber city gurugram", "Cyber City, Gurugram 122002"],
+  ["udyog vihar gurugram", "Udyog Vihar, Gurugram 122016"],
+  ["golf course road gurugram", "Golf Course Road, Gurugram 122002"],
+  ["mg road gurugram", "MG Road, Gurugram 122002"],
+  ["palam vihar gurugram", "Palam Vihar, Gurugram 122017"],
+  ["sushant lok gurugram", "Sushant Lok, Gurugram 122009"],
+  ["nirvana country gurugram", "Nirvana Country, Gurugram 122018"],
+  ["new gurgaon", "New Gurgaon 122004"],
+  ["manesar gurugram", "Manesar, Gurugram 122051"],
   ["sohna road gurugram", "Sohna Road, Gurugram 122018"],
   ["sector 18 noida", "Sector 18, Noida 201301"],
   ["sector 62 noida", "Sector 62, Noida 201309"],
@@ -62,15 +110,63 @@ const locationSuggestions = [
   ["sector 137 noida", "Sector 137, Noida 201305"],
   ["greater noida west", "Greater Noida West 201306"],
   ["connaught place delhi", "Connaught Place, Delhi 110001"],
+  ["chanakyapuri delhi", "Chanakyapuri, Delhi 110021"],
+  ["vasant vihar delhi", "Vasant Vihar, Delhi 110057"],
+  ["vasant kunj delhi", "Vasant Kunj, Delhi 110070"],
   ["saket delhi", "Saket, Delhi 110017"],
   ["dwarka delhi", "Dwarka, Delhi 110075"],
+  ["dwarka sector 6 delhi", "Dwarka Sector 6, Delhi 110075"],
+  ["dwarka sector 10 delhi", "Dwarka Sector 10, Delhi 110075"],
+  ["dwarka sector 12 delhi", "Dwarka Sector 12, Delhi 110078"],
+  ["dwarka sector 21 delhi", "Dwarka Sector 21, Delhi 110077"],
   ["rohini delhi", "Rohini, Delhi 110085"],
+  ["rohini sector 7 delhi", "Rohini Sector 7, Delhi 110085"],
+  ["rohini sector 15 delhi", "Rohini Sector 15, Delhi 110089"],
+  ["pitampura delhi", "Pitampura, Delhi 110034"],
+  ["shalimar bagh delhi", "Shalimar Bagh, Delhi 110088"],
   ["janakpuri delhi", "Janakpuri, Delhi 110058"],
   ["lajpat nagar delhi", "Lajpat Nagar, Delhi 110024"],
   ["karol bagh delhi", "Karol Bagh, Delhi 110005"],
   ["preet vihar delhi", "Preet Vihar, Delhi 110092"],
+  ["mayur vihar delhi", "Mayur Vihar, Delhi 110091"],
+  ["laxmi nagar delhi", "Laxmi Nagar, Delhi 110092"],
+  ["rajouri garden delhi", "Rajouri Garden, Delhi 110027"],
+  ["punjabi bagh delhi", "Punjabi Bagh, Delhi 110026"],
+  ["paschim vihar delhi", "Paschim Vihar, Delhi 110063"],
+  ["tilak nagar delhi", "Tilak Nagar, Delhi 110018"],
+  ["vikaspuri delhi", "Vikaspuri, Delhi 110018"],
+  ["uttam nagar delhi", "Uttam Nagar, Delhi 110059"],
+  ["hauz khas delhi", "Hauz Khas, Delhi 110016"],
+  ["green park delhi", "Green Park, Delhi 110016"],
+  ["greater kailash delhi", "Greater Kailash, Delhi 110048"],
+  ["nehru place delhi", "Nehru Place, Delhi 110019"],
+  ["malviya nagar delhi", "Malviya Nagar, Delhi 110017"],
+  ["okhla delhi", "Okhla, Delhi 110020"],
+  ["jasola delhi", "Jasola, Delhi 110025"],
+  ["sarita vihar delhi", "Sarita Vihar, Delhi 110076"],
+  ["defence colony delhi", "Defence Colony, Delhi 110024"],
+  ["south extension delhi", "South Extension, Delhi 110049"],
+  ["patel nagar delhi", "Patel Nagar, Delhi 110008"],
+  ["rajendra place delhi", "Rajendra Place, Delhi 110008"],
+  ["civil lines delhi", "Civil Lines, Delhi 110054"],
+  ["model town delhi", "Model Town, Delhi 110009"],
+  ["ashok vihar delhi", "Ashok Vihar, Delhi 110052"],
+  ["karol bagh delhi", "Karol Bagh, Delhi 110005"],
+  ["chandni chowk delhi", "Chandni Chowk, Delhi 110006"],
+  ["daryaganj delhi", "Daryaganj, Delhi 110002"],
+  ["khan market delhi", "Khan Market, Delhi 110003"],
+  ["india gate delhi", "India Gate, Delhi 110001"],
+  ["aerocity delhi", "Aerocity, Delhi 110037"],
   ["ghaziabad indirapuram", "Indirapuram, Ghaziabad 201014"],
-  ["faridabad sector 15", "Sector 15, Faridabad 121007"]
+  ["faridabad sector 15", "Sector 15, Faridabad 121007"],
+  ...Array.from({ length: 18 }, (_, index) => {
+    const pin = String(122001 + index);
+    return [`gurugram ${pin}`, `Gurugram ${pin}`];
+  }),
+  ...Array.from({ length: 96 }, (_, index) => {
+    const pin = String(110001 + index).padStart(6, "0");
+    return [`delhi ${pin}`, `Delhi ${pin}`];
+  })
 ];
 
 const emptyForm = {
@@ -675,7 +771,7 @@ function AgentPortal({ form, updateForm, updateLocation, resolveTypedLocation, t
             <MultiOptionField label="Q4. Brand Tier" value={form.brandTier} options={brandTiers} onToggle={(value) => toggleFormChoice("brandTier", value)} />
             <MultiOptionField label="Q5. Store Discovery Source" value={form.storeSource} options={storeSources} onToggle={(value) => toggleFormChoice("storeSource", value)} />
             <MultiOptionField label="Q6. Desired Brand" value={form.desiredBrand} options={desiredBrands} onToggle={(value) => toggleFormChoice("desiredBrand", value)} scrollable />
-            <MultiOptionField label="Q7. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} />
+            <MultiOptionField label="Q7. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} scrollable />
             <MultiOptionField label="Q8. Competitor / Brand Store" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} scrollable />
             <TextField label="Price Mismatch Range" value={form.priceMismatchRange} onChange={(value) => updateForm("priceMismatchRange", value)} icon={IndianRupee} inputMode="numeric" />
             <MultiOptionField label="Q9. Financial Hook" value={form.financialHook} options={financialHooks} onToggle={(value) => toggleFormChoice("financialHook", value)} />
@@ -724,9 +820,9 @@ function LocationField({ value, onChange, onResolve }) {
       </span>
       {open && (
         <div className="absolute left-0 right-0 top-[76px] z-30 max-h-56 overflow-y-auto rounded-lg border border-reliance-line bg-white p-2 shadow-soft">
-          {visibleSuggestions.map((label) => (
+          {visibleSuggestions.map((label, index) => (
             <button
-              key={label}
+              key={`${label}-${index}`}
               type="button"
               onPointerDown={(event) => event.preventDefault()}
               onMouseDown={(event) => event.preventDefault()}
