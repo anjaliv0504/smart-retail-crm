@@ -1,30 +1,94 @@
 const seedRows = [
-  ["Aarav Mehta", "9876543210", "Mumbai 400053", "Mobile/Smartwatch", "Deal-Hunter", "Tech-Savvy", "Sole Decision", "Premium", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "Today/Immediate", "Urgent Deal-Hunter", 0],
-  ["Priya Nair", "9988776655", "Thane 400601", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Mainstream", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "This Week", "Family Planner", 1],
-  ["Kabir Singh", "9123456789", "Pune 411001", "TV/Audio", "Corporate", "Status-Driven", "Corporate Approval", "Premium", "Color/Model Out of Stock", "Local Dealer", "Under 2%", "Exchange Bonus", "Next Week/Month", "Corporate Premium", 3],
-  ["Riya Sharma", "9600000001", "Delhi 110001", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Online Price Mismatch", "Amazon/Flipkart", "Above 5%", "Credit Card Discount", "Today/Immediate", "Urgent Individual", 6],
-  ["Vivaan Rao", "9600000002", "Bengaluru 560001", "Mobile/Smartwatch", "Deal-Hunter", "Aggressive Negotiator", "Influencer Present", "Budget", "Finance/Card Issue", "Croma/Vijay Sales", "2% to 5%", "No-Cost EMI", "This Week", "Budget Deal-Hunter", 8],
-  ["Meera Iyer", "9600000003", "Chennai 600017", "TV/Audio", "Family", "Needs Guidance", "Needs Approval", "Mainstream", "Just Browsing", "No comparison", "Not a price issue", "Exchange Bonus", "Window Shopping", "Guided Shopper", 12],
-  ["Arjun Kapoor", "9600000004", "Jaipur 302001", "Home Appliances", "Corporate", "Status-Driven", "Corporate Approval", "Premium", "Color/Model Out of Stock", "Local Dealer", "Under 2%", "Upfront Cash", "Next Week/Month", "Corporate Buyer", 16],
-  ["Sana Khan", "9600000005", "Hyderabad 500001", "Mobile/Smartwatch", "Individual", "Needs Guidance", "Sole Decision", "Undecided", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "This Week", "Price Watcher", 22],
-  ["Dev Patel", "9600000006", "Ahmedabad 380001", "Laptop/IT", "Deal-Hunter", "Tech-Savvy", "Sole Decision", "Premium", "Finance/Card Issue", "Croma/Vijay Sales", "Above 5%", "No-Cost EMI", "Today/Immediate", "Urgent Deal-Hunter", 28],
-  ["Nisha Gupta", "9600000007", "Kolkata 700001", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Budget", "Just Browsing", "No comparison", "Not a price issue", "Exchange Bonus", "Next Week/Month", "Guided Shopper", 35]
+  ["Sachin Saxena", "7838764065", "Delhi 110092", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Croma/Vijay Sales", "Under 2%", "No-Cost EMI", "This Week", 4],
+  ["Ayush Badoni", "9761328965", "Noida 201301", "Laptop/IT", "Individual", "Needs Guidance", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "This Week", 4],
+  ["Anushree Sarkar", "8448862125", "Gurugram 122001", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Upfront Cash", "Next Week/Month", 4],
+  ["Gaurav Trivedi", "9711304158", "", "Laptop/IT", "Individual", "Needs Guidance", "Influencer Present", "Budget", "Online Price Mismatch", "Local Dealer", "Above 5%", "No-Cost EMI", "Window Shopping", 4],
+  ["Riyaz Khan", "8802134987", "Delhi 110025", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Upfront Cash", "Today/Immediate", 4],
+  ["Mayank Gupta", "7259158886", "Ghaziabad 201001", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Croma/Vijay Sales", "2% to 5%", "Credit Card Discount", "This Week", 4],
+  ["Amit Rajput", "8200086679", "Delhi 110018", "Laptop/IT", "Individual", "Needs Guidance", "Needs Approval", "Budget", "Finance/Card Issue", "Local Dealer", "Above 5%", "No-Cost EMI", "This Week", 4],
+  ["Harish Bansal", "9810123218", "", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "Next Week/Month", 4],
+  ["H.G", "8520873263", "Delhi 110058", "Laptop/IT", "Corporate", "Tech-Savvy", "Corporate Approval", "Premium", "Just Browsing", "Croma/Vijay Sales", "Under 2%", "Upfront Cash", "Today/Immediate", 4],
+  ["Md Middassar Ansari", "9910746247", "Noida 201309", "Laptop/IT", "Individual", "Needs Guidance", "Influencer Present", "Budget", "Color/Model Out of Stock", "Local Dealer", "Above 5%", "No-Cost EMI", "This Week", 4],
+  ["Krishna Krish", "7895308454", "Delhi 110096", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "Next Week/Month", 4],
+  ["Rahul Gupta", "9680204776", "", "Laptop/IT", "Individual", "Needs Guidance", "Needs Approval", "Mainstream", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "No-Cost EMI", "This Week", 4],
+  ["Vinay Vishwakarma", "8800449495", "Faridabad 121001", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Upfront Cash", "Next Week/Month", 4],
+  ["Umesh Chandra", "6393226311", "Delhi 110001", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Brand Preference", "Apple Store", "Not a price issue", "Upfront Cash", "Next Week/Month", 4],
+  ["Sheeba Khan", "9351439782", "Delhi 110044", "Laptop/IT", "Individual", "Needs Guidance", "Influencer Present", "Mainstream", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "No-Cost EMI", "Today/Immediate", 3],
+  ["Arjun Mehta", "9884063001", "Delhi 110019", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "This Week", 3],
+  ["Nitesh", "9657121851", "", "Laptop/IT", "Individual", "Needs Guidance", "Needs Approval", "Mainstream", "Just Browsing", "Croma/Vijay Sales", "2% to 5%", "No-Cost EMI", "This Week", 3],
+  ["A.J", "8210233649", "Delhi 110059", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Brand Preference", "Apple Store", "Not a price issue", "Upfront Cash", "Next Week/Month", 3],
+  ["Bhavesh Kukreja", "9628658896", "Gurugram 122002", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "This Week", 3],
+  ["Gurmeet Singh", "7082167238", "Delhi 110075", "Gaming", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "No-Cost EMI", "This Week", 3],
+  ["Arun Kumar", "8010286955", "Noida 201304", "Laptop/IT", "Individual", "Needs Guidance", "Needs Approval", "Mainstream", "Just Browsing", "Local Dealer", "Above 5%", "No-Cost EMI", "Next Week/Month", 3],
+  ["Ashik Kumar", "9456636513", "Delhi 110032", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Brand Preference", "Apple Store", "Not a price issue", "Upfront Cash", "This Week", 3],
+  ["Rahul Kaur", "8445895666", "", "Laptop/IT", "Individual", "Needs Guidance", "Influencer Present", "Mainstream", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "No-Cost EMI", "Next Week/Month", 3],
+  ["Amoto", "9523935412", "Delhi 110027", "Laptop/IT", "Individual", "Needs Guidance", "Needs Approval", "Mainstream", "Exchange Concern", "Croma/Vijay Sales", "2% to 5%", "Exchange Bonus", "Today/Immediate", 3],
+  ["Vikas Pandey", "9970165324", "Faridabad 121003", "Laptop/IT", "Individual", "Needs Guidance", "Influencer Present", "Budget", "Online Price Mismatch", "Local Dealer", "Above 5%", "No-Cost EMI", "Window Shopping", 3],
+  ["Shivam Puri", "9820247130", "Delhi 110085", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "This Week", 3],
+  ["Hari Shankar", "9313725498", "Ghaziabad 201002", "Laptop/IT", "Individual", "Needs Guidance", "Needs Approval", "Budget", "Budget Constraint", "Local Dealer", "Above 5%", "Exchange Bonus", "Next Week/Month", 3],
+  ["Utsav Malhotra", "7042508887", "", "Laptop/IT", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "Today/Immediate", 3],
+  ["Riya Sharma", "9600000001", "Delhi 110017", "Mobile/Smartwatch", "Family", "Needs Guidance", "Influencer Present", "Mainstream", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "This Week", 2],
+  ["Dev Patel", "9600000002", "Noida 201301", "TV/Audio", "Family", "Status-Driven", "Needs Approval", "Premium", "Color/Model Out of Stock", "Croma/Vijay Sales", "Under 2%", "Exchange Bonus", "Next Week/Month", 2],
+  ["Nisha Gupta", "9600000003", "Delhi 110064", "Home Appliances", "Family", "Needs Guidance", "", "Mainstream", "Finance/Card Issue", "Local Dealer", "Not a price issue", "No-Cost EMI", "This Week", 2],
+  ["Karan Malhotra", "9600000004", "Gurugram 122018", "Gaming", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Online Price Mismatch", "Amazon/Flipkart", "Above 5%", "Credit Card Discount", "Today/Immediate", 2],
+  ["Anaya Das", "9600000005", "", "Mobile/Smartwatch", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Brand Preference", "Apple Store", "Not a price issue", "Upfront Cash", "Next Week/Month", 2],
+  ["Rohan Verma", "9600000006", "Delhi 110034", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Budget", "Just Browsing", "No comparison", "", "Exchange Bonus", "", 2],
+  ["Ishita Sen", "9600000007", "Noida 201307", "TV/Audio", "Family", "Needs Guidance", "Influencer Present", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "", "Window Shopping", 2],
+  ["Yash Bansal", "9600000008", "Delhi 110063", "Gaming", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Finance/Card Issue", "Amazon/Flipkart", "2% to 5%", "No-Cost EMI", "This Week", 2],
+  ["Tara Joshi", "9600000009", "Faridabad 121005", "Mobile/Smartwatch", "Deal-Hunter", "Aggressive Negotiator", "", "Budget", "Online Price Mismatch", "Local Dealer", "Above 5%", "Exchange Bonus", "Today/Immediate", 2],
+  ["Aditya Menon", "9600000010", "Delhi 110048", "Home Appliances", "Corporate", "Needs Guidance", "Corporate Approval", "Premium", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "This Week", 2],
+  ["Kiara Shah", "9600000011", "Delhi 110003", "TV/Audio", "Family", "Status-Driven", "Needs Approval", "Premium", "Brand Preference", "No comparison", "Not a price issue", "Upfront Cash", "Next Week/Month", 2],
+  ["Nikhil Jain", "9600000012", "", "Mobile/Smartwatch", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "This Week", 2],
+  ["Pooja Sinha", "9600000013", "Ghaziabad 201010", "Home Appliances", "Family", "", "Needs Approval", "Mainstream", "Color/Model Out of Stock", "Local Dealer", "Under 2%", "", "Next Week/Month", 1],
+  ["Harsh Agarwal", "9600000014", "Delhi 110020", "Gaming", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Just Browsing", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "Today/Immediate", 1],
+  ["Simran Kaur", "9600000015", "Delhi 110026", "Mobile/Smartwatch", "Family", "Needs Guidance", "Influencer Present", "Mainstream", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "This Week", 1],
+  ["Rahul Chawla", "9600000016", "Noida 201305", "TV/Audio", "Deal-Hunter", "Tech-Savvy", "Sole Decision", "Budget", "Online Price Mismatch", "Amazon/Flipkart", "Above 5%", "Credit Card Discount", "Today/Immediate", 1],
+  ["Neha Reddy", "9600000017", "", "Home Appliances", "Family", "Needs Guidance", "", "Premium", "Exchange Concern", "Croma/Vijay Sales", "2% to 5%", "Exchange Bonus", "Next Week/Month", 1],
+  ["Manav Bhatia", "9600000018", "Delhi 110022", "Gaming", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Color/Model Out of Stock", "Amazon/Flipkart", "Under 2%", "No-Cost EMI", "This Week", 1],
+  ["Aisha Mirza", "9600000019", "Gurugram 122011", "Mobile/Smartwatch", "Individual", "Status-Driven", "Sole Decision", "Premium", "Just Browsing", "No comparison", "", "Upfront Cash", "", 1],
+  ["Varun Saxena", "9600000020", "Delhi 110029", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Budget", "Budget Constraint", "Local Dealer", "Above 5%", "Exchange Bonus", "Window Shopping", 1],
+  ["Dia Chatterjee", "9600000021", "Delhi 110016", "TV/Audio", "Family", "Needs Guidance", "Influencer Present", "Mainstream", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "This Week", 1],
+  ["Om Prakash", "9600000022", "Noida 201306", "Mobile/Smartwatch", "Deal-Hunter", "Aggressive Negotiator", "Sole Decision", "Budget", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "Today/Immediate", 1],
+  ["Tanvi Arora", "9600000023", "", "Gaming", "Individual", "Needs Guidance", "Influencer Present", "Budget", "Just Browsing", "Local Dealer", "", "", "Next Week/Month", 1],
+  ["Sahil Grover", "9600000024", "Faridabad 121002", "TV/Audio", "Corporate", "Tech-Savvy", "Corporate Approval", "Premium", "Brand Preference", "No comparison", "Not a price issue", "Upfront Cash", "Next Week/Month", 1],
+  ["Lavanya Pillai", "9600000025", "Delhi 110070", "Home Appliances", "Family", "Needs Guidance", "Needs Approval", "Mainstream", "Color/Model Out of Stock", "Croma/Vijay Sales", "Under 2%", "No-Cost EMI", "This Week", 1],
+  ["Akash Suri", "9600000026", "Delhi 110077", "Mobile/Smartwatch", "Individual", "Tech-Savvy", "Sole Decision", "Mainstream", "Just Browsing", "Amazon/Flipkart", "Under 2%", "Credit Card Discount", "This Week", 1],
+  ["Maya Thomas", "9600000027", "Gurugram 122009", "Gaming", "Individual", "Tech-Savvy", "Sole Decision", "Premium", "Online Price Mismatch", "Amazon/Flipkart", "Above 5%", "No-Cost EMI", "Today/Immediate", 1],
+  ["Rudra Vyas", "9600000028", "", "Home Appliances", "Family", "", "", "Undecided", "Just Browsing", "No comparison", "Not a price issue", "", "Window Shopping", 1],
+  ["Anika Bose", "9600000029", "Delhi 110052", "TV/Audio", "Family", "Needs Guidance", "Influencer Present", "Mainstream", "Online Price Mismatch", "Amazon/Flipkart", "2% to 5%", "Credit Card Discount", "This Week", 1],
+  ["Jay Mehta", "9600000030", "Noida 201308", "Mobile/Smartwatch", "Corporate", "Tech-Savvy", "Corporate Approval", "Premium", "Finance/Card Issue", "Croma/Vijay Sales", "Not a price issue", "No-Cost EMI", "Today/Immediate", 1]
 ];
+
+function daysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+}
 
 function valueFor(category, tier) {
   const values = {
     "Mobile/Smartwatch": { Budget: 18000, Mainstream: 30000, Premium: 45000, Undecided: 28000 },
     "Laptop/IT": { Budget: 32000, Mainstream: 55000, Premium: 85000, Undecided: 52000 },
     "TV/Audio": { Budget: 22000, Mainstream: 48000, Premium: 85000, Undecided: 45000 },
-    "Home Appliances": { Budget: 18000, Mainstream: 42000, Premium: 90000, Undecided: 38000 }
+    "Home Appliances": { Budget: 18000, Mainstream: 42000, Premium: 90000, Undecided: 38000 },
+    Gaming: { Budget: 45000, Mainstream: 85000, Premium: 140000, Undecided: 75000 }
   };
   return values[category]?.[tier] || values["Mobile/Smartwatch"].Mainstream;
 }
 
-function daysAgo(days) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString();
+function personaFor(row) {
+  const [, , , category, driver, knowledge, , tier, reason, , , , urgency] = row;
+  if (urgency === "Today/Immediate") return `Urgent ${driver || "Buyer"}`;
+  if (category === "Gaming") return "Gaming Seeker";
+  if (driver === "Corporate") return "Corporate Buyer";
+  if (knowledge === "Needs Guidance") return "Guided Shopper";
+  if (tier === "Premium") return "Premium Seeker";
+  if (reason === "Online Price Mismatch" || reason === "Price Sensitive") return "Price Watcher";
+  return `${tier || "Retail"} ${driver || "Buyer"}`;
+}
+
+function labelForDay(days) {
+  return { 4: "Monday", 3: "Tuesday", 2: "Wednesday", 1: "Thursday" }[days] || `${days} days ago`;
 }
 
 export const initialCustomers = seedRows.map((row, index) => ({
@@ -42,8 +106,8 @@ export const initialCustomers = seedRows.map((row, index) => ({
   priceGap: row[10],
   financialHook: row[11],
   urgency: row[12],
-  personaTag: row[13],
+  personaTag: personaFor(row),
   estimatedValue: valueFor(row[3], row[7]),
-  createdAtIso: daysAgo(row[14]),
-  createdAt: row[14] === 0 ? "Today" : `${row[14]} days ago`
+  createdAtIso: daysAgo(row[13]),
+  createdAt: labelForDay(row[13])
 }));

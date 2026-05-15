@@ -1,7 +1,35 @@
 import { initialCustomers } from "../src/data/customers.js";
 
 const STORE_KEY = "retail-marketing-tool:customers";
+const VERSION_KEY = "retail-marketing-tool:dataset-version";
+const DATASET_VERSION = "pdf-monday-thursday-58-v1";
 const seedIds = new Set(initialCustomers.map((customer) => customer.id));
+
+async function kvKeyRequest(command, key, args = []) {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+
+  if (!url || !token) {
+    throw new Error("Vercel KV is not connected");
+  }
+
+  const response = await fetch(`${url}/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify([[command, key, ...args]])
+  });
+
+  if (!response.ok) {
+    throw new Error(`KV request failed: ${response.status}`);
+  }
+
+  const [result] = await response.json();
+  if (result.error) throw new Error(result.error);
+  return result.result;
+}
 
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -20,7 +48,8 @@ function estimatedValueFor(category, brandTier) {
     "Mobile/Smartwatch": { Budget: 18000, Mainstream: 30000, Premium: 45000, Undecided: 28000 },
     "Laptop/IT": { Budget: 32000, Mainstream: 55000, Premium: 85000, Undecided: 52000 },
     "TV/Audio": { Budget: 22000, Mainstream: 48000, Premium: 85000, Undecided: 45000 },
-    "Home Appliances": { Budget: 18000, Mainstream: 42000, Premium: 90000, Undecided: 38000 }
+    "Home Appliances": { Budget: 18000, Mainstream: 42000, Premium: 90000, Undecided: 38000 },
+    Gaming: { Budget: 45000, Mainstream: 85000, Premium: 140000, Undecided: 75000 }
   };
   return values[selectedCategory]?.[selectedTier] || values["Mobile/Smartwatch"].Mainstream;
 }
@@ -45,35 +74,21 @@ function normalizeCustomers(customers) {
 }
 
 async function kvRequest(command, args = []) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-
-  if (!url || !token) {
-    throw new Error("Vercel KV is not connected");
-  }
-
-  const response = await fetch(`${url}/pipeline`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify([[command, STORE_KEY, ...args]])
-  });
-
-  if (!response.ok) {
-    throw new Error(`KV request failed: ${response.status}`);
-  }
-
-  const [result] = await response.json();
-  if (result.error) throw new Error(result.error);
-  return result.result;
+  return kvKeyRequest(command, STORE_KEY, args);
 }
 
 async function getCustomers() {
+  const version = await kvKeyRequest("get", VERSION_KEY);
+  if (version !== DATASET_VERSION) {
+    await saveCustomers(initialCustomers);
+    await kvKeyRequest("set", VERSION_KEY, [DATASET_VERSION]);
+    return initialCustomers;
+  }
+
   const raw = await kvRequest("get");
   if (!raw) {
     await kvRequest("set", [JSON.stringify(initialCustomers)]);
+    await kvKeyRequest("set", VERSION_KEY, [DATASET_VERSION]);
     return initialCustomers;
   }
 

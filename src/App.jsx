@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { initialCustomers } from "./data/customers.js";
 
-const categories = ["Mobile/Smartwatch", "Laptop/IT", "TV/Audio", "Home Appliances"];
+const categories = ["Mobile/Smartwatch", "Laptop/IT", "TV/Audio", "Home Appliances", "Gaming"];
 const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
 const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Aggressive Negotiator"];
 const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
@@ -164,6 +164,12 @@ function estimatedValueFor(category, brandTier) {
       Mainstream: 42000,
       Premium: 90000,
       Undecided: 38000
+    },
+    Gaming: {
+      Budget: 45000,
+      Mainstream: 85000,
+      Premium: 140000,
+      Undecided: 75000
     }
   };
   return valueMap[selectedCategory]?.[selectedTier] || valueMap["Mobile/Smartwatch"].Mainstream;
@@ -258,8 +264,13 @@ function campaignMessage(customer, campaignDetails, triggerType) {
     "Online Price Mismatch": "Since you were comparing online prices, I will include the current store-best offer.",
     "Color/Model Out of Stock": "Since availability was the blocker, I will confirm the closest matching model/color before you visit.",
     "Finance/Card Issue": "Since payment was the blocker, I will include finance options in the message.",
-    "Just Browsing": "Since you were exploring options, I will keep this short and useful."
-  }[primaryChoice(customer.walkoutReason, "Just Browsing")];
+    "Just Browsing": "Since you were exploring options, I will keep this short and useful.",
+    "Brand Preference": "Since brand preference mattered, I will share the closest matching option.",
+    "Exchange Concern": "Since exchange value mattered, I will include the exchange estimate path.",
+    "Budget Constraint": "Since budget was the concern, I will focus on the best-value options.",
+    "Price Sensitive": "Since pricing was important, I will include the strongest current offer.",
+    "Stock Issue": "Since stock was the blocker, I will confirm availability before you visit."
+  }[primaryChoice(customer.walkoutReason, "Just Browsing")] || "Based on your store visit, I will keep this relevant and specific.";
   const triggerLine = {
     "New Card Discount": "A new card-linked saving is live now.",
     "Stock Replenished": "The stock situation has changed in your favour.",
