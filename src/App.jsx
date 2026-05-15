@@ -523,7 +523,7 @@ function App() {
 
           <div className="flex-1 px-4 py-5 lg:px-8 lg:py-8">
             {activePanel === "agent" && (
-              <AgentPortal form={form} updateForm={updateForm} toggleFormChoice={toggleFormChoice} submitInsight={submitInsight} />
+              <AgentPortal form={form} updateForm={updateForm} updateLocation={updateLocation} toggleFormChoice={toggleFormChoice} submitInsight={submitInsight} />
             )}
             {activePanel === "dashboard" && (
               <ManagerDashboard
@@ -611,7 +611,7 @@ function SectionShell({ eyebrow, title, subtitle, icon: Icon, children, compact 
   );
 }
 
-function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
+function AgentPortal({ form, updateForm, updateLocation, toggleFormChoice, submitInsight }) {
   return (
     <SectionShell
       eyebrow="Panel 1"
