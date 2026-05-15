@@ -23,16 +23,16 @@ import {
 } from "lucide-react";
 import { initialCustomers } from "./data/customers.js";
 
-const categories = ["Mobile/Smartwatch", "Laptop/IT", "TV/Audio", "Home Appliances", "Gaming"];
+const categories = ["Mobile", "Smartwatch/Wearables", "Laptop/IT", "TV/Audio", "Home Appliances", "Gaming"];
 const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
-const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Aggressive Negotiator"];
+const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Early Adopter"];
 const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
 const brandTiers = ["Premium", "Mainstream", "Budget", "Undecided"];
-const walkoutReasons = ["Online Price Mismatch", "Color Not Available", "Model Not Available", "Finance Issue", "Card Issue", "Brand Preference", "Budget Constraint", "Exchange Concern", "Just Browsing"];
-const competitors = ["Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "Brand Store - Samsung", "Brand Store - Apple", "Brand Store - LG", "Brand Store - Sony", "Brand Store - HP", "Brand Store - Lenovo", "No comparison"];
+const walkoutReasons = ["Online Price Mismatch", "Color Not Available", "Model Not Available", "Finance Issue", "Card Issue", "Brand Preference", "Budget Constraint", "Exchange Concern", "Service Concern", "Just Browsing"];
+const competitors = ["Brand Store", "Brand Store - Samsung", "Brand Store - Apple", "Brand Store - LG", "Brand Store - Sony", "Brand Store - HP", "Brand Store - Lenovo", "Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "No comparison"];
 const priceGaps = ["Under 2%", "2% to 5%", "Above 5%", "Not a price issue"];
-const financialHooks = ["Exchange Bonus", "No-Cost EMI", "Credit Card Discount", "Upfront Cash"];
-const storeSources = ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral"];
+const financialHooks = ["Exchange Bonus", "No-Cost EMI", "Credit Card Discount", "Extended Warranty"];
+const storeSources = ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral", "Social Media"];
 const desiredBrands = ["Samsung", "Apple", "LG", "Sony", "HP", "Lenovo", "Dell", "Asus", "Acer", "Whirlpool", "Bosch", "IFB", "Vivo", "Oppo", "OnePlus", "Undecided"];
 const triggerTypes = [
   "New Card Discount",
@@ -78,7 +78,7 @@ const emptyForm = {
   phone: "",
   location: "",
   requirement: "",
-  directPrice: "",
+  priceMismatchRange: "",
   category: [],
   buyingDriver: [],
   techKnowledge: [],
@@ -181,18 +181,24 @@ function generatePersona(form) {
   return `${primaryChoice(form.brandTier, "Retail")} ${primaryChoice(form.buyingDriver, "Buyer")}`;
 }
 
-function estimatedValueFor(category, brandTier, directPrice = "") {
-  const direct = numericPrice(directPrice);
+function estimatedValueFor(category, brandTier, priceMismatchRange = "") {
+  const direct = numericPrice(priceMismatchRange);
   if (direct) return direct;
 
-  const selectedCategory = primaryChoice(category, "Mobile/Smartwatch");
+  const selectedCategory = primaryChoice(category, "Mobile");
   const selectedTier = primaryChoice(brandTier, "Mainstream");
   const valueMap = {
-    "Mobile/Smartwatch": {
+    Mobile: {
       Budget: 18000,
       Mainstream: 30000,
       Premium: 45000,
       Undecided: 28000
+    },
+    "Smartwatch/Wearables": {
+      Budget: 5000,
+      Mainstream: 12000,
+      Premium: 30000,
+      Undecided: 10000
     },
     "Laptop/IT": {
       Budget: 32000,
@@ -219,7 +225,7 @@ function estimatedValueFor(category, brandTier, directPrice = "") {
       Undecided: 75000
     }
   };
-  return valueMap[selectedCategory]?.[selectedTier] || valueMap["Mobile/Smartwatch"].Mainstream;
+  return valueMap[selectedCategory]?.[selectedTier] || valueMap.Mobile.Mainstream;
 }
 
 function profileMessage(customer) {
@@ -227,7 +233,7 @@ function profileMessage(customer) {
     "Exchange Bonus": "We can unlock an exchange bonus evaluation and improve the final payable price",
     "No-Cost EMI": "We can arrange a no-cost EMI option with quick in-store approval",
     "Credit Card Discount": "A fresh card discount can reduce your checkout price today",
-    "Upfront Cash": "We can check the best upfront cash price and available manager approval"
+    "Extended Warranty": "We can include extended warranty value in the final recommendation"
   };
 
   const hook = primaryChoice(customer.financialHook, "No-Cost EMI");
@@ -293,7 +299,7 @@ function campaignMessage(customer, campaignDetails, triggerType) {
     "Exchange Bonus": "We can also check an exchange bonus to improve your final price.",
     "No-Cost EMI": "We can include a no-cost EMI option in the quote.",
     "Credit Card Discount": "We can apply the relevant card discount if your bank is eligible.",
-    "Upfront Cash": "We can check the best upfront cash approval at store level."
+    "Extended Warranty": "We can include extended warranty value in the final recommendation."
   }[primaryChoice(customer.financialHook, "No-Cost EMI")];
   const objectionLine = {
     "Online Price Mismatch": "Since you were comparing online prices, I will include the current store-best offer.",
@@ -304,6 +310,7 @@ function campaignMessage(customer, campaignDetails, triggerType) {
     "Just Browsing": "Since you were exploring options, I will keep this short and useful.",
     "Brand Preference": "Since brand preference mattered, I will share the closest matching option.",
     "Exchange Concern": "Since exchange value mattered, I will include the exchange estimate path.",
+    "Service Concern": "Since service support mattered, I will include warranty and service assistance details.",
     "Budget Constraint": "Since budget was the concern, I will focus on the best-value options.",
     "Price Sensitive": "Since pricing was important, I will include the strongest current offer.",
     "Stock Issue": "Since stock was the blocker, I will confirm availability before you visit."
@@ -427,7 +434,7 @@ function App() {
       personaTag: generatePersona(form),
       createdAt: "Just now",
       createdAtIso: new Date().toISOString(),
-      estimatedValue: estimatedValueFor(form.category, form.brandTier, form.directPrice)
+      estimatedValue: estimatedValueFor(form.category, form.brandTier, form.priceMismatchRange)
     };
 
     const optimisticCustomers = [newCustomer, ...customers];
@@ -650,18 +657,13 @@ function AgentPortal({ form, updateForm, updateLocation, toggleFormChoice, submi
             <MultiOptionField label="Q3. Tech Knowledge" value={form.techKnowledge} options={techKnowledge} onToggle={(value) => toggleFormChoice("techKnowledge", value)} />
             <TextField label="Open-ended Requirement" value={form.requirement} onChange={(value) => updateForm("requirement", value)} icon={ClipboardList} />
             <MultiOptionField label="Q4. Brand Tier" value={form.brandTier} options={brandTiers} onToggle={(value) => toggleFormChoice("brandTier", value)} />
-            <MultiOptionField label="Q5. Desired Brand" value={form.desiredBrand} options={desiredBrands} onToggle={(value) => toggleFormChoice("desiredBrand", value)} />
+            <MultiOptionField label="Q5. Desired Brand" value={form.desiredBrand} options={desiredBrands} onToggle={(value) => toggleFormChoice("desiredBrand", value)} scrollable />
             <MultiOptionField label="Q6. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} />
-            <MultiOptionField label="Q7. Competitor / Brand Store" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} />
-            <TextField label="Direct Price Mentioned" value={form.directPrice} onChange={(value) => updateForm("directPrice", value)} icon={IndianRupee} inputMode="numeric" />
+            <MultiOptionField label="Q7. Competitor / Brand Store" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} scrollable />
+            <TextField label="Price Mismatch Range" value={form.priceMismatchRange} onChange={(value) => updateForm("priceMismatchRange", value)} icon={IndianRupee} inputMode="numeric" />
             <MultiOptionField label="Q8. Store Discovery Source" value={form.storeSource} options={storeSources} onToggle={(value) => toggleFormChoice("storeSource", value)} />
             <MultiOptionField label="Q9. Financial Hook" value={form.financialHook} options={financialHooks} onToggle={(value) => toggleFormChoice("financialHook", value)} />
-            <div className="md:col-span-2 xl:col-span-3">
-              <div className="rounded-lg border border-dashed border-reliance-line bg-reliance-sky px-4 py-3 text-sm font-bold text-reliance-deep">
-                Optional follow-up details
-              </div>
-            </div>
-            <MultiOptionField label="Q10. Decision Maker" value={form.decisionMaker} options={decisionMakers} onToggle={(value) => toggleFormChoice("decisionMaker", value)} optional />
+            <MultiOptionField label="Q10. Decision Maker" value={form.decisionMaker} options={decisionMakers} onToggle={(value) => toggleFormChoice("decisionMaker", value)} />
           </div>
           <button
             type="submit"
@@ -712,7 +714,7 @@ function SelectField({ label, value, options, onChange }) {
   );
 }
 
-function MultiOptionField({ label, value, options, onToggle, optional = false }) {
+function MultiOptionField({ label, value, options, onToggle, optional = false, scrollable = false }) {
   const selected = asArray(value);
 
   return (
@@ -721,7 +723,7 @@ function MultiOptionField({ label, value, options, onToggle, optional = false })
         <legend className="text-sm font-semibold text-slate-700">{label}</legend>
         {optional && <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">Optional</span>}
       </div>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+      <div className={`mt-2 grid gap-2 sm:grid-cols-2 ${scrollable ? "max-h-36 overflow-y-auto pr-1" : ""}`}>
         {options.map((option) => {
           const isSelected = selected.includes(option);
           return (
@@ -1038,7 +1040,7 @@ function ProfileModal({ customer, onClose }) {
     ["WhatsApp", customer.phone],
     ["City / Pin Code", customer.location || "Not captured"],
     ["Requirement", customer.requirement || "Not captured"],
-    ["Direct Price", customer.directPrice ? rupees(numericPrice(customer.directPrice)) : "Not captured"],
+    ["Price Mismatch Range", customer.priceMismatchRange ? rupees(numericPrice(customer.priceMismatchRange)) : "Not captured"],
     ["Product Category", displayValue(customer.category)],
     ["Buying Driver", displayValue(customer.buyingDriver)],
     ["Tech Knowledge", displayValue(customer.techKnowledge)],
