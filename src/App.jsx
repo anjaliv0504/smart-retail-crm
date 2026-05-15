@@ -29,7 +29,7 @@ const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Early A
 const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
 const brandTiers = ["Premium", "Mainstream", "Budget", "Undecided"];
 const walkoutReasons = ["Online Price Mismatch", "Color Not Available", "Model Not Available", "Finance Issue", "Card Issue", "Brand Preference", "Budget Constraint", "Exchange Concern", "Service Concern", "Just Browsing"];
-const competitors = ["Brand Store", "Brand Store - Samsung", "Brand Store - Apple", "Brand Store - LG", "Brand Store - Sony", "Brand Store - HP", "Brand Store - Lenovo", "Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "No comparison"];
+const competitors = ["Brand Store", "Brand Store - Samsung", "Brand Store - Apple", "Brand Store - LG", "Brand Store - Sony", "Brand Store - HP", "Brand Store - Lenovo", "Amazon/Flipkart", "Croma", "Vijay Sales", "Local Dealer", "No comparison"];
 const priceGaps = ["Under 2%", "2% to 5%", "Above 5%", "Not a price issue"];
 const financialHooks = ["Exchange Bonus", "No-Cost EMI", "Credit Card Discount", "Extended Warranty"];
 const storeSources = ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral", "Social Media", "Hoardings"];
@@ -455,6 +455,7 @@ function App() {
   });
   const [matches, setMatches] = useState([]);
   const [hasRunCampaign, setHasRunCampaign] = useState(false);
+  const [deletingIds, setDeletingIds] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -579,6 +580,36 @@ function App() {
     setActivePanel("dashboard");
   }
 
+  async function deleteCustomer(customer) {
+    const confirmed = window.confirm(`Delete ${customer.name}? This will remove the row from the shared dashboard.`);
+    if (!confirmed) return;
+
+    setDeletingIds((current) => [...current, customer.id]);
+    const previousCustomers = customers;
+    const nextCustomers = customers.filter((item) => item.id !== customer.id);
+    setCustomers(nextCustomers);
+    window.localStorage.setItem("retail-marketing-tool-customers", JSON.stringify(nextCustomers));
+    if (selectedCustomer?.id === customer.id) setSelectedCustomer(null);
+
+    try {
+      const response = await fetch("/api/customers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: customer.id })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || "Delete failed");
+      if (Array.isArray(data.customers)) setCustomers(data.customers);
+      setStorageStatus("Shared database connected");
+    } catch {
+      setCustomers(previousCustomers);
+      window.localStorage.setItem("retail-marketing-tool-customers", JSON.stringify(previousCustomers));
+      setStorageStatus("Delete failed - shared database unchanged");
+    } finally {
+      setDeletingIds((current) => current.filter((id) => id !== customer.id));
+    }
+  }
+
   function runMatchingAlgorithm() {
     const filtered = customers
       .map((customer) => triggerFit(customer, campaign))
@@ -659,6 +690,8 @@ function App() {
                 topWalkoutReason={topWalkoutReason}
                 revenueAtRisk={revenueAtRisk}
                 onView={setSelectedCustomer}
+                onDelete={deleteCustomer}
+                deletingIds={deletingIds}
               />
             )}
             {activePanel === "engine" && (
@@ -910,7 +943,7 @@ function MultiOptionField({ label, value, options, onToggle, optional = false, s
   );
 }
 
-function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalyticsRange, topWalkoutReason, revenueAtRisk, onView }) {
+function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalyticsRange, topWalkoutReason, revenueAtRisk, onView, onDelete, deletingIds }) {
   const financeBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Finance Issue")).length;
   const cardBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Card Issue")).length;
   const highPriceGap = customers.filter((customer) => hasChoice(customer.priceGap, "Above 5%")).length;
@@ -1014,7 +1047,7 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1040px] w-full text-left">
+          <table className="min-w-[1120px] w-full text-left">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3">Name</th>
@@ -1047,14 +1080,25 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <button
-                      type="button"
-                      onClick={() => onView(customer)}
-                      className="inline-flex h-10 items-center gap-2 rounded-lg border border-reliance-blue px-3 text-sm font-bold text-reliance-blue transition hover:bg-reliance-blue hover:text-white"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      View Profile & Retarget
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onView(customer)}
+                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-reliance-blue px-3 text-sm font-bold text-reliance-blue transition hover:bg-reliance-blue hover:text-white"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        View Profile
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(customer)}
+                        disabled={deletingIds.includes(customer.id)}
+                        className="inline-flex h-10 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-bold text-rose-600 transition enabled:hover:bg-rose-50 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        <X className="h-4 w-4" />
+                        {deletingIds.includes(customer.id) ? "Deleting" : "Delete"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

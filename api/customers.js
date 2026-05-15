@@ -2,7 +2,8 @@ import { initialCustomers } from "../src/data/customers.js";
 
 const STORE_KEY = "retail-marketing-tool:customers";
 const VERSION_KEY = "retail-marketing-tool:dataset-version";
-const DATASET_VERSION = "pdf-monday-thursday-58-form-redesign-v5";
+const DELETED_KEY = "retail-marketing-tool:deleted-customer-ids";
+const DATASET_VERSION = "pdf-monday-thursday-58-form-redesign-v6";
 const seedIds = new Set(initialCustomers.map((customer) => customer.id));
 
 async function kvKeyRequest(command, key, args = []) {
@@ -72,7 +73,11 @@ function withCurrentEstimate(customer) {
   });
   const techKnowledge = asArray(customer.techKnowledge).map((item) => item === "Aggressive Negotiator" ? "Early Adopter" : item);
   const financialHook = asArray(customer.financialHook).map((item) => item === "Upfront Cash" ? "Extended Warranty" : item);
-  const competitor = asArray(customer.competitor).map((item) => item === "Apple Store" ? "Brand Store - Apple" : item);
+  const competitor = asArray(customer.competitor).flatMap((item) => {
+    if (item === "Apple Store") return ["Brand Store - Apple"];
+    if (item === "Croma/Vijay Sales") return ["Croma", "Vijay Sales"];
+    return [item];
+  });
   const walkoutReason = asArray(customer.walkoutReason).map((reason, index) => {
     if (reason === "Finance/Card Issue") return index % 2 ? "Card Issue" : "Finance Issue";
     if (reason === "Color/Model Out of Stock" || reason === "Stock Issue") return index % 2 ? "Color Not Available" : "Model Not Available";
@@ -91,10 +96,11 @@ function withCurrentEstimate(customer) {
   };
 }
 
-function normalizeCustomers(customers) {
-  const realEntries = customers.filter((customer) => !seedIds.has(customer.id) && customer.id < 1000).map(withCurrentEstimate);
-  const userEntries = customers.filter((customer) => customer.id > 1000000000000).map(withCurrentEstimate);
-  const currentSeedRows = initialCustomers.map((customer) => {
+function normalizeCustomers(customers, deletedIds = []) {
+  const deletedSet = new Set(deletedIds.map((id) => Number(id)));
+  const realEntries = customers.filter((customer) => !deletedSet.has(Number(customer.id)) && !seedIds.has(customer.id) && customer.id < 1000).map(withCurrentEstimate);
+  const userEntries = customers.filter((customer) => !deletedSet.has(Number(customer.id)) && customer.id > 1000000000000).map(withCurrentEstimate);
+  const currentSeedRows = initialCustomers.filter((customer) => !deletedSet.has(Number(customer.id))).map((customer) => {
     const existing = customers.find((item) => item.id === customer.id);
     return existing ? withCurrentEstimate({ ...existing, ...customer }) : customer;
   });
@@ -107,12 +113,22 @@ async function kvRequest(command, args = []) {
   return kvKeyRequest(command, STORE_KEY, args);
 }
 
+async function getDeletedIds() {
+  const raw = await kvKeyRequest("get", DELETED_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+async function saveDeletedIds(ids) {
+  await kvKeyRequest("set", DELETED_KEY, [JSON.stringify([...new Set(ids.map((id) => Number(id)))])]);
+}
+
 async function getCustomers() {
+  const deletedIds = await getDeletedIds();
   const version = await kvKeyRequest("get", VERSION_KEY);
   if (version !== DATASET_VERSION) {
     const raw = await kvRequest("get");
     const existingCustomers = raw ? JSON.parse(raw) : initialCustomers;
-    const normalized = normalizeCustomers(existingCustomers);
+    const normalized = normalizeCustomers(existingCustomers, deletedIds);
     await saveCustomers(normalized);
     await kvKeyRequest("set", VERSION_KEY, [DATASET_VERSION]);
     return normalized;
@@ -120,13 +136,14 @@ async function getCustomers() {
 
   const raw = await kvRequest("get");
   if (!raw) {
-    await kvRequest("set", [JSON.stringify(initialCustomers)]);
+    const normalized = normalizeCustomers(initialCustomers, deletedIds);
+    await kvRequest("set", [JSON.stringify(normalized)]);
     await kvKeyRequest("set", VERSION_KEY, [DATASET_VERSION]);
-    return initialCustomers;
+    return normalized;
   }
 
   const customers = JSON.parse(raw);
-  const normalized = normalizeCustomers(customers);
+  const normalized = normalizeCustomers(customers, deletedIds);
   if (JSON.stringify(normalized) !== JSON.stringify(customers)) {
     await saveCustomers(normalized);
   }
@@ -140,7 +157,7 @@ async function saveCustomers(customers) {
 
 export default async function handler(request, response) {
   response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (request.method === "OPTIONS") {
@@ -161,6 +178,23 @@ export default async function handler(request, response) {
       const nextCustomers = [body.customer, ...customers].filter(Boolean);
       await saveCustomers(nextCustomers);
       response.status(201).json({ customers: nextCustomers, storage: "vercel-kv" });
+      return;
+    }
+
+    if (request.method === "DELETE") {
+      const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body || {};
+      const id = Number(body.id);
+      if (!id) {
+        response.status(400).json({ error: "Customer id is required" });
+        return;
+      }
+
+      const customers = await getCustomers();
+      const nextCustomers = customers.filter((customer) => Number(customer.id) !== id);
+      const deletedIds = await getDeletedIds();
+      await saveDeletedIds([...deletedIds, id]);
+      await saveCustomers(nextCustomers);
+      response.status(200).json({ customers: nextCustomers, storage: "vercel-kv" });
       return;
     }
 
