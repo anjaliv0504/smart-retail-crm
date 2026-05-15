@@ -667,12 +667,7 @@ function AgentPortal({ form, updateForm, updateLocation, resolveTypedLocation, t
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <TextField label="Customer Name" value={form.name} onChange={(value) => updateForm("name", value)} icon={UserRound} />
             <TextField label="Number" value={form.phone} onChange={(value) => updateForm("phone", value)} icon={Phone} inputMode="numeric" />
-            <TextField label="Location" value={form.location} onChange={updateLocation} onBlur={resolveTypedLocation} icon={Store} list="location-options" />
-            <datalist id="location-options">
-              {locationSuggestions.map(([, label]) => (
-                <option key={label} value={label} />
-              ))}
-            </datalist>
+            <LocationField value={form.location} onChange={updateLocation} onResolve={resolveTypedLocation} />
             <MultiOptionField label="Q1. Product Category" value={form.category} options={categories} onToggle={(value) => toggleFormChoice("category", value)} />
             <MultiOptionField label="Q2. Buying Driver" value={form.buyingDriver} options={buyingDrivers} onToggle={(value) => toggleFormChoice("buyingDriver", value)} />
             <MultiOptionField label="Q3. Tech Knowledge" value={form.techKnowledge} options={techKnowledge} onToggle={(value) => toggleFormChoice("techKnowledge", value)} />
@@ -699,7 +694,58 @@ function AgentPortal({ form, updateForm, updateLocation, resolveTypedLocation, t
   );
 }
 
-function TextField({ label, value, onChange, onBlur, icon: Icon, inputMode = "text", list }) {
+function LocationField({ value, onChange, onResolve }) {
+  const [open, setOpen] = useState(false);
+  const normalized = normalizeText(value);
+  const suggestions = locationSuggestions
+    .map(([, label]) => label)
+    .filter((label) => !normalized || normalizeText(label).includes(normalized) || normalized.includes(normalizeText(label).slice(0, 8)));
+  const visibleSuggestions = suggestions.length ? suggestions : locationSuggestions.map(([, label]) => label);
+
+  return (
+    <label className="relative block">
+      <span className="text-sm font-semibold text-slate-700">Location</span>
+      <span className="mt-2 flex h-12 items-center gap-3 rounded-lg border border-reliance-line bg-white px-3 focus-within:border-reliance-blue focus-within:ring-4 focus-within:ring-blue-100">
+        <Store className="h-4 w-4 shrink-0 text-reliance-blue" />
+        <input
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            window.setTimeout(() => setOpen(false), 140);
+            onResolve();
+          }}
+          className="min-w-0 flex-1 border-0 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
+          placeholder="Sector 29 Gurugram / Delhi / Noida"
+        />
+      </span>
+      {open && (
+        <div className="absolute left-0 right-0 top-[76px] z-30 max-h-56 overflow-y-auto rounded-lg border border-reliance-line bg-white p-2 shadow-soft">
+          {visibleSuggestions.map((label) => (
+            <button
+              key={label}
+              type="button"
+              onPointerDown={(event) => event.preventDefault()}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(label);
+                setOpen(false);
+              }}
+              className="block min-h-10 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-reliance-sky hover:text-reliance-deep"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </label>
+  );
+}
+
+function TextField({ label, value, onChange, onBlur, icon: Icon, inputMode = "text" }) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-700">{label}</span>
@@ -710,7 +756,6 @@ function TextField({ label, value, onChange, onBlur, icon: Icon, inputMode = "te
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           inputMode={inputMode}
-          list={list}
           className="min-w-0 flex-1 border-0 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
           placeholder={label}
         />
