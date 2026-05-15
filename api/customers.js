@@ -2,7 +2,7 @@ import { initialCustomers } from "../src/data/customers.js";
 
 const STORE_KEY = "retail-marketing-tool:customers";
 const VERSION_KEY = "retail-marketing-tool:dataset-version";
-const DATASET_VERSION = "pdf-monday-thursday-58-form-redesign-v4";
+const DATASET_VERSION = "pdf-monday-thursday-58-form-redesign-v5";
 const seedIds = new Set(initialCustomers.map((customer) => customer.id));
 
 async function kvKeyRequest(command, key, args = []) {
@@ -54,19 +54,25 @@ function estimatedValueFor(category, brandTier, priceMismatchRange = "") {
   const selectedTier = primaryChoice(brandTier, "Mainstream");
   const values = {
     Mobile: { Budget: 18000, Mainstream: 30000, Premium: 45000, Undecided: 28000 },
-    "Smartwatch/Wearables": { Budget: 5000, Mainstream: 12000, Premium: 30000, Undecided: 10000 },
+    Wearables: { Budget: 5000, Mainstream: 12000, Premium: 30000, Undecided: 10000 },
     "Laptop/IT": { Budget: 32000, Mainstream: 55000, Premium: 85000, Undecided: 52000 },
-    "TV/Audio": { Budget: 22000, Mainstream: 48000, Premium: 85000, Undecided: 45000 },
     "Home Appliances": { Budget: 18000, Mainstream: 42000, Premium: 90000, Undecided: 38000 },
-    Gaming: { Budget: 45000, Mainstream: 85000, Premium: 140000, Undecided: 75000 }
+    Gaming: { Budget: 45000, Mainstream: 85000, Premium: 140000, Undecided: 75000 },
+    "New Age Gadgets": { Budget: 8000, Mainstream: 25000, Premium: 60000, Undecided: 22000 }
   };
   return values[selectedCategory]?.[selectedTier] || values.Mobile.Mainstream;
 }
 
 function withCurrentEstimate(customer) {
-  const category = asArray(customer.category).map((item) => item === "Mobile/Smartwatch" ? "Mobile" : item);
+  const category = asArray(customer.category).map((item) => {
+    if (item === "Mobile/Smartwatch") return "Mobile";
+    if (item === "Smartwatch/Wearables") return "Wearables";
+    if (item === "TV/Audio") return "Home Appliances";
+    return item;
+  });
   const techKnowledge = asArray(customer.techKnowledge).map((item) => item === "Aggressive Negotiator" ? "Early Adopter" : item);
   const financialHook = asArray(customer.financialHook).map((item) => item === "Upfront Cash" ? "Extended Warranty" : item);
+  const competitor = asArray(customer.competitor).map((item) => item === "Apple Store" ? "Brand Store - Apple" : item);
   const walkoutReason = asArray(customer.walkoutReason).map((reason, index) => {
     if (reason === "Finance/Card Issue") return index % 2 ? "Card Issue" : "Finance Issue";
     if (reason === "Color/Model Out of Stock" || reason === "Stock Issue") return index % 2 ? "Color Not Available" : "Model Not Available";
@@ -79,6 +85,7 @@ function withCurrentEstimate(customer) {
     category,
     techKnowledge,
     financialHook,
+    competitor,
     walkoutReason,
     estimatedValue: estimatedValueFor(category, customer.brandTier, customer.priceMismatchRange || customer.directPrice)
   };
@@ -103,9 +110,12 @@ async function kvRequest(command, args = []) {
 async function getCustomers() {
   const version = await kvKeyRequest("get", VERSION_KEY);
   if (version !== DATASET_VERSION) {
-    await saveCustomers(initialCustomers);
+    const raw = await kvRequest("get");
+    const existingCustomers = raw ? JSON.parse(raw) : initialCustomers;
+    const normalized = normalizeCustomers(existingCustomers);
+    await saveCustomers(normalized);
     await kvKeyRequest("set", VERSION_KEY, [DATASET_VERSION]);
-    return initialCustomers;
+    return normalized;
   }
 
   const raw = await kvRequest("get");

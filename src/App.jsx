@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { initialCustomers } from "./data/customers.js";
 
-const categories = ["Mobile", "Smartwatch/Wearables", "Laptop/IT", "TV/Audio", "Home Appliances", "Gaming"];
+const categories = ["Mobile", "Wearables", "Laptop/IT", "Home Appliances", "Gaming", "New Age Gadgets"];
 const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
 const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Early Adopter"];
 const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
@@ -194,7 +194,7 @@ function estimatedValueFor(category, brandTier, priceMismatchRange = "") {
       Premium: 45000,
       Undecided: 28000
     },
-    "Smartwatch/Wearables": {
+    Wearables: {
       Budget: 5000,
       Mainstream: 12000,
       Premium: 30000,
@@ -205,12 +205,6 @@ function estimatedValueFor(category, brandTier, priceMismatchRange = "") {
       Mainstream: 55000,
       Premium: 85000,
       Undecided: 52000
-    },
-    "TV/Audio": {
-      Budget: 22000,
-      Mainstream: 48000,
-      Premium: 85000,
-      Undecided: 45000
     },
     "Home Appliances": {
       Budget: 18000,
@@ -223,6 +217,12 @@ function estimatedValueFor(category, brandTier, priceMismatchRange = "") {
       Mainstream: 85000,
       Premium: 140000,
       Undecided: 75000
+    },
+    "New Age Gadgets": {
+      Budget: 8000,
+      Mainstream: 25000,
+      Premium: 60000,
+      Undecided: 22000
     }
   };
   return valueMap[selectedCategory]?.[selectedTier] || valueMap.Mobile.Mainstream;
@@ -388,19 +388,25 @@ function App() {
     [customers, analyticsRange]
   );
 
+  const actionableDashboardCustomers = useMemo(
+    () => dashboardCustomers.filter((customer) => !hasChoice(customer.walkoutReason, "Just Browsing")),
+    [dashboardCustomers]
+  );
+
   const topWalkoutReason = useMemo(() => {
-    const counts = dashboardCustomers.reduce((acc, customer) => {
+    const counts = actionableDashboardCustomers.reduce((acc, customer) => {
       asArray(customer.walkoutReason).forEach((reason) => {
+        if (!reason || reason === "Just Browsing") return;
         acc[reason] = (acc[reason] || 0) + 1;
       });
       return acc;
     }, {});
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "No data";
-  }, [dashboardCustomers]);
+  }, [actionableDashboardCustomers]);
 
   const revenueAtRisk = useMemo(
-    () => dashboardCustomers.reduce((sum, customer) => sum + customer.estimatedValue, 0),
-    [dashboardCustomers]
+    () => actionableDashboardCustomers.reduce((sum, customer) => sum + customer.estimatedValue, 0),
+    [actionableDashboardCustomers]
   );
 
   function updateForm(field, value) {
@@ -418,7 +424,11 @@ function App() {
   }
 
   function updateLocation(value) {
-    setForm((current) => ({ ...current, location: resolveLocation(value) }));
+    setForm((current) => ({ ...current, location: value }));
+  }
+
+  function resolveTypedLocation() {
+    setForm((current) => ({ ...current, location: resolveLocation(current.location) }));
   }
 
   async function submitInsight(event) {
@@ -496,7 +506,6 @@ function App() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-reliance-deep">Smart Retail Marketing Tool</p>
-                  <p className="text-xs text-slate-500">Retail Marketing MVP</p>
                 </div>
               </div>
               <div className="hidden lg:block">
@@ -530,7 +539,7 @@ function App() {
 
           <div className="flex-1 px-4 py-5 lg:px-8 lg:py-8">
             {activePanel === "agent" && (
-              <AgentPortal form={form} updateForm={updateForm} updateLocation={updateLocation} toggleFormChoice={toggleFormChoice} submitInsight={submitInsight} />
+              <AgentPortal form={form} updateForm={updateForm} updateLocation={updateLocation} resolveTypedLocation={resolveTypedLocation} toggleFormChoice={toggleFormChoice} submitInsight={submitInsight} />
             )}
             {activePanel === "dashboard" && (
               <ManagerDashboard
@@ -571,7 +580,6 @@ function BrandBlock() {
       </div>
       <div>
         <p className="text-base font-bold text-reliance-deep">Smart Retail Marketing Tool</p>
-        <p className="text-sm text-slate-500">Retail Marketing MVP</p>
       </div>
     </div>
   );
@@ -618,7 +626,7 @@ function SectionShell({ eyebrow, title, subtitle, icon: Icon, children, compact 
   );
 }
 
-function AgentPortal({ form, updateForm, updateLocation, toggleFormChoice, submitInsight }) {
+function AgentPortal({ form, updateForm, updateLocation, resolveTypedLocation, toggleFormChoice, submitInsight }) {
   return (
     <SectionShell
       eyebrow="Panel 1"
@@ -646,7 +654,7 @@ function AgentPortal({ form, updateForm, updateLocation, toggleFormChoice, submi
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <TextField label="Customer Name" value={form.name} onChange={(value) => updateForm("name", value)} icon={UserRound} />
             <TextField label="Number" value={form.phone} onChange={(value) => updateForm("phone", value)} icon={Phone} inputMode="numeric" />
-            <TextField label="Location" value={form.location} onChange={updateLocation} icon={Store} list="location-options" />
+            <TextField label="Location" value={form.location} onChange={updateLocation} onBlur={resolveTypedLocation} icon={Store} list="location-options" />
             <datalist id="location-options">
               {locationSuggestions.map(([, label]) => (
                 <option key={label} value={label} />
@@ -655,13 +663,13 @@ function AgentPortal({ form, updateForm, updateLocation, toggleFormChoice, submi
             <MultiOptionField label="Q1. Product Category" value={form.category} options={categories} onToggle={(value) => toggleFormChoice("category", value)} />
             <MultiOptionField label="Q2. Buying Driver" value={form.buyingDriver} options={buyingDrivers} onToggle={(value) => toggleFormChoice("buyingDriver", value)} />
             <MultiOptionField label="Q3. Tech Knowledge" value={form.techKnowledge} options={techKnowledge} onToggle={(value) => toggleFormChoice("techKnowledge", value)} />
-            <TextField label="Open-ended Requirement" value={form.requirement} onChange={(value) => updateForm("requirement", value)} icon={ClipboardList} />
+            <TextField label="Specific Demand" value={form.requirement} onChange={(value) => updateForm("requirement", value)} icon={ClipboardList} />
             <MultiOptionField label="Q4. Brand Tier" value={form.brandTier} options={brandTiers} onToggle={(value) => toggleFormChoice("brandTier", value)} />
-            <MultiOptionField label="Q5. Desired Brand" value={form.desiredBrand} options={desiredBrands} onToggle={(value) => toggleFormChoice("desiredBrand", value)} scrollable />
-            <MultiOptionField label="Q6. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} />
-            <MultiOptionField label="Q7. Competitor / Brand Store" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} scrollable />
+            <MultiOptionField label="Q5. Store Discovery Source" value={form.storeSource} options={storeSources} onToggle={(value) => toggleFormChoice("storeSource", value)} />
+            <MultiOptionField label="Q6. Desired Brand" value={form.desiredBrand} options={desiredBrands} onToggle={(value) => toggleFormChoice("desiredBrand", value)} scrollable />
+            <MultiOptionField label="Q7. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} />
+            <MultiOptionField label="Q8. Competitor / Brand Store" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} scrollable />
             <TextField label="Price Mismatch Range" value={form.priceMismatchRange} onChange={(value) => updateForm("priceMismatchRange", value)} icon={IndianRupee} inputMode="numeric" />
-            <MultiOptionField label="Q8. Store Discovery Source" value={form.storeSource} options={storeSources} onToggle={(value) => toggleFormChoice("storeSource", value)} />
             <MultiOptionField label="Q9. Financial Hook" value={form.financialHook} options={financialHooks} onToggle={(value) => toggleFormChoice("financialHook", value)} />
             <MultiOptionField label="Q10. Decision Maker" value={form.decisionMaker} options={decisionMakers} onToggle={(value) => toggleFormChoice("decisionMaker", value)} />
           </div>
@@ -678,7 +686,7 @@ function AgentPortal({ form, updateForm, updateLocation, toggleFormChoice, submi
   );
 }
 
-function TextField({ label, value, onChange, icon: Icon, inputMode = "text", list }) {
+function TextField({ label, value, onChange, onBlur, icon: Icon, inputMode = "text", list }) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-700">{label}</span>
@@ -687,6 +695,7 @@ function TextField({ label, value, onChange, icon: Icon, inputMode = "text", lis
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
           inputMode={inputMode}
           list={list}
           className="min-w-0 flex-1 border-0 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
@@ -751,13 +760,14 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
   const financeBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Finance Issue")).length;
   const cardBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Card Issue")).length;
   const highPriceGap = customers.filter((customer) => hasChoice(customer.priceGap, "Above 5%")).length;
+  const actionableCustomers = customers.filter((customer) => !hasChoice(customer.walkoutReason, "Just Browsing"));
   const metrics = [
     { label: "Filtered Walkouts", value: customers.length, icon: UsersRound, note: `${allCustomers.length} total stored leads` },
     { label: "Top Walkout Reason", value: topWalkoutReason, icon: Search, note: "Highest frequency signal" },
-    { label: "Revenue at Risk", value: rupees(revenueAtRisk), icon: IndianRupee, note: "Estimated basket value" },
+    { label: "Actionable Leads", value: actionableCustomers.length, icon: TrendingUp, note: "Excludes Just Browsing" },
     { label: "Finance + Card Issues", value: financeBlockers + cardBlockers, icon: TrendingUp, note: "Payment friction cases" }
   ];
-  const walkoutData = countChoices(customers, "walkoutReason");
+  const walkoutData = countChoices(actionableCustomers, "walkoutReason");
   const categoryData = countChoices(customers, "category");
   const brandData = countChoices(customers, "brandTier");
   const competitorData = countChoices(customers, "competitor");
@@ -831,6 +841,10 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
         <ChartPanel title="Competitor Pressure" subtitle="Where customers are comparing before purchase">
           <HorizontalBars data={competitorData} />
         </ChartPanel>
+      </div>
+
+      <div className="mt-4">
+        <InsightCard label="Potential Reach" value={rupees(revenueAtRisk)} helper="Estimated basket value of actionable leads only, excluding Just Browsing" />
       </div>
 
       <div className="mt-6 overflow-hidden rounded-lg border border-reliance-line bg-white shadow-sm">
