@@ -330,6 +330,19 @@ function campaignMessage(customer, campaignDetails, triggerType) {
   return `Hi ${customer.name}, this is Reliance Digital. ${triggerLine} ${detail} for ${displayValue(customer.category)}. ${objectionLine} ${hookLine} Reply YES and I will share the exact quote and availability.`;
 }
 
+async function sendWhatsAppMessage({ phone, message, customerName }) {
+  const response = await fetch("/api/whatsapp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, message, customerName })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || data.error || "WhatsApp send failed");
+  }
+  return data;
+}
+
 function App() {
   const [activePanel, setActivePanel] = useState("agent");
   const [customers, setCustomers] = useState(initialCustomers);
@@ -1050,6 +1063,7 @@ function HorizontalBars({ data }) {
 function ProfileModal({ customer, onClose }) {
   const message = profileMessage(customer);
   const waUrl = `https://wa.me/91${cleanPhone(customer.phone)}?text=${encodeURIComponent(message)}`;
+  const [sendState, setSendState] = useState({ status: "idle", message: "" });
   const detailRows = [
     ["WhatsApp", customer.phone],
     ["City / Pin Code", customer.location || "Not captured"],
@@ -1067,6 +1081,16 @@ function ProfileModal({ customer, onClose }) {
     ["Financial Hook", displayValue(customer.financialHook)],
     ["Store Discovery", displayValue(customer.storeSource)]
   ];
+
+  async function sendFromPortal() {
+    setSendState({ status: "sending", message: "Sending WhatsApp..." });
+    try {
+      const result = await sendWhatsAppMessage({ phone: customer.phone, message, customerName: customer.name });
+      setSendState({ status: "sent", message: `Sent successfully${result.messageId ? ` (${result.messageId})` : ""}` });
+    } catch (error) {
+      setSendState({ status: "error", message: error.message });
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
@@ -1104,15 +1128,30 @@ function ProfileModal({ customer, onClose }) {
             </div>
             <h4 className="mt-4 text-lg font-bold text-slate-950">WhatsApp Draft</h4>
             <p className="mt-3 rounded-lg bg-white p-3 text-sm leading-6 text-slate-700">{message}</p>
+            <button
+              type="button"
+              onClick={sendFromPortal}
+              disabled={sendState.status === "sending"}
+              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-reliance-blue px-4 text-sm font-bold text-white transition enabled:hover:bg-reliance-deep disabled:cursor-wait disabled:bg-slate-400"
+            >
+              <Send className="h-4 w-4" />
+              {sendState.status === "sending" ? "Sending..." : "Send from Portal"}
+            </button>
             <a
               href={waUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-reliance-blue px-4 text-sm font-bold text-white transition hover:bg-reliance-deep"
+              className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-reliance-blue bg-white px-4 text-sm font-bold text-reliance-blue transition hover:bg-reliance-sky"
             >
-              <Send className="h-4 w-4" />
-              Send WhatsApp
+              Open WhatsApp Fallback
             </a>
+            {sendState.message && (
+              <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold leading-5 ${
+                sendState.status === "error" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
+              }`}>
+                {sendState.message}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -1122,6 +1161,41 @@ function ProfileModal({ customer, onClose }) {
 
 function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMatchingAlgorithm }) {
   const updateCampaign = (field, value) => setCampaign((current) => ({ ...current, [field]: value }));
+  const [sendStates, setSendStates] = useState({});
+  const [bulkState, setBulkState] = useState({ status: "idle", message: "" });
+
+  async function sendCampaignCustomer(customer) {
+    const message = campaignMessage(customer, campaign.details, campaign.triggerType);
+    setSendStates((current) => ({ ...current, [customer.id]: { status: "sending", message: "Sending..." } }));
+    try {
+      const result = await sendWhatsAppMessage({ phone: customer.phone, message, customerName: customer.name });
+      setSendStates((current) => ({
+        ...current,
+        [customer.id]: { status: "sent", message: `Sent${result.messageId ? ` (${result.messageId})` : ""}` }
+      }));
+      return { ok: true };
+    } catch (error) {
+      setSendStates((current) => ({ ...current, [customer.id]: { status: "error", message: error.message } }));
+      return { ok: false };
+    }
+  }
+
+  async function sendAllMatches() {
+    setBulkState({ status: "sending", message: "Sending campaign messages..." });
+    let sent = 0;
+    let failed = 0;
+
+    for (const customer of matches) {
+      const result = await sendCampaignCustomer(customer);
+      if (result.ok) sent += 1;
+      else failed += 1;
+    }
+
+    setBulkState({
+      status: failed ? "error" : "sent",
+      message: failed ? `${sent} sent, ${failed} failed` : `${sent} WhatsApp messages sent`
+    });
+  }
 
   return (
     <SectionShell
@@ -1195,12 +1269,18 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
             </div>
             <button
               type="button"
-              disabled={!matches.length}
+              disabled={!matches.length || bulkState.status === "sending"}
+              onClick={sendAllMatches}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white transition enabled:hover:bg-reliance-deep disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <Send className="h-4 w-4" />
-              Send to All Matches
+              {bulkState.status === "sending" ? "Sending..." : "Send to All Matches"}
             </button>
+            {bulkState.message && (
+              <p className={`text-xs font-bold ${bulkState.status === "error" ? "text-rose-600" : "text-emerald-700"}`}>
+                {bulkState.message}
+              </p>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -1233,17 +1313,24 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
                 <div className="mt-4 rounded-lg border border-reliance-line bg-slate-50 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Auto-Drafted Personalized WhatsApp</p>
-                    <a
-                      href={`https://wa.me/91${cleanPhone(customer.phone)}?text=${encodeURIComponent(campaignMessage(customer, campaign.details, campaign.triggerType))}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-reliance-blue px-3 text-xs font-bold text-white hover:bg-reliance-deep"
+                    <button
+                      type="button"
+                      onClick={() => sendCampaignCustomer(customer)}
+                      disabled={sendStates[customer.id]?.status === "sending"}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-reliance-blue px-3 text-xs font-bold text-white enabled:hover:bg-reliance-deep disabled:cursor-wait disabled:bg-slate-400"
                     >
                       <Send className="h-3.5 w-3.5" />
-                      Send
-                    </a>
+                      {sendStates[customer.id]?.status === "sending" ? "Sending" : "Send"}
+                    </button>
                   </div>
                   <p className="mt-2 text-sm leading-6 text-slate-700">{campaignMessage(customer, campaign.details, campaign.triggerType)}</p>
+                  {sendStates[customer.id]?.message && (
+                    <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold ${
+                      sendStates[customer.id]?.status === "error" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
+                    }`}>
+                      {sendStates[customer.id].message}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
