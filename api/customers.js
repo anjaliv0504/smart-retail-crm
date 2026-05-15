@@ -2,7 +2,7 @@ import { initialCustomers } from "../src/data/customers.js";
 
 const STORE_KEY = "retail-marketing-tool:customers";
 const VERSION_KEY = "retail-marketing-tool:dataset-version";
-const DATASET_VERSION = "pdf-monday-thursday-58-v1";
+const DATASET_VERSION = "pdf-monday-thursday-58-form-redesign-v2";
 const seedIds = new Set(initialCustomers.map((customer) => customer.id));
 
 async function kvKeyRequest(command, key, args = []) {
@@ -41,7 +41,15 @@ function primaryChoice(value, fallback = "") {
   return asArray(value)[0] || fallback;
 }
 
-function estimatedValueFor(category, brandTier) {
+function numericPrice(value) {
+  const parsed = Number(String(value || "").replace(/[^0-9]/g, ""));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function estimatedValueFor(category, brandTier, directPrice = "") {
+  const direct = numericPrice(directPrice);
+  if (direct) return direct;
+
   const selectedCategory = primaryChoice(category, "Mobile/Smartwatch");
   const selectedTier = primaryChoice(brandTier, "Mainstream");
   const values = {
@@ -55,9 +63,17 @@ function estimatedValueFor(category, brandTier) {
 }
 
 function withCurrentEstimate(customer) {
+  const walkoutReason = asArray(customer.walkoutReason).map((reason, index) => {
+    if (reason === "Finance/Card Issue") return index % 2 ? "Card Issue" : "Finance Issue";
+    if (reason === "Color/Model Out of Stock" || reason === "Stock Issue") return index % 2 ? "Color Not Available" : "Model Not Available";
+    if (reason === "Price Sensitive") return "Online Price Mismatch";
+    return reason;
+  });
+
   return {
     ...customer,
-    estimatedValue: estimatedValueFor(customer.category, customer.brandTier)
+    walkoutReason,
+    estimatedValue: estimatedValueFor(customer.category, customer.brandTier, customer.directPrice)
   };
 }
 
@@ -66,7 +82,7 @@ function normalizeCustomers(customers) {
   const userEntries = customers.filter((customer) => customer.id > 1000000000000).map(withCurrentEstimate);
   const currentSeedRows = initialCustomers.map((customer) => {
     const existing = customers.find((item) => item.id === customer.id);
-    return existing ? { ...existing, ...customer } : customer;
+    return existing ? withCurrentEstimate({ ...existing, ...customer }) : customer;
   });
 
   return [...userEntries, ...realEntries, ...currentSeedRows]

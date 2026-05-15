@@ -28,11 +28,12 @@ const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter"];
 const techKnowledge = ["Tech-Savvy", "Needs Guidance", "Status-Driven", "Aggressive Negotiator"];
 const decisionMakers = ["Sole Decision", "Influencer Present", "Needs Approval", "Corporate Approval"];
 const brandTiers = ["Premium", "Mainstream", "Budget", "Undecided"];
-const walkoutReasons = ["Online Price Mismatch", "Color/Model Out of Stock", "Finance/Card Issue", "Just Browsing"];
-const competitors = ["Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "No comparison"];
+const walkoutReasons = ["Online Price Mismatch", "Color Not Available", "Model Not Available", "Finance Issue", "Card Issue", "Brand Preference", "Budget Constraint", "Exchange Concern", "Just Browsing"];
+const competitors = ["Amazon/Flipkart", "Croma/Vijay Sales", "Local Dealer", "Brand Store - Samsung", "Brand Store - Apple", "Brand Store - LG", "Brand Store - Sony", "Brand Store - HP", "Brand Store - Lenovo", "No comparison"];
 const priceGaps = ["Under 2%", "2% to 5%", "Above 5%", "Not a price issue"];
 const financialHooks = ["Exchange Bonus", "No-Cost EMI", "Credit Card Discount", "Upfront Cash"];
-const urgencies = ["Today/Immediate", "This Week", "Next Week/Month", "Window Shopping"];
+const storeSources = ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral"];
+const desiredBrands = ["Samsung", "Apple", "LG", "Sony", "HP", "Lenovo", "Dell", "Asus", "Acer", "Whirlpool", "Bosch", "IFB", "Vivo", "Oppo", "OnePlus", "Undecided"];
 const triggerTypes = [
   "New Card Discount",
   "Stock Replenished",
@@ -42,25 +43,53 @@ const triggerTypes = [
   "EMI Rescue",
   "Competitor Winback",
   "Premium Upgrade",
-  "Urgency Recovery",
   "Guidance Callback"
 ];
 const anyOption = "Any";
+
+const locationSuggestions = [
+  ["sector 29 gurugram", "Sector 29, Gurugram 122001"],
+  ["sector 14 gurugram", "Sector 14, Gurugram 122001"],
+  ["sector 31 gurugram", "Sector 31, Gurugram 122001"],
+  ["sector 56 gurugram", "Sector 56, Gurugram 122011"],
+  ["dlf phase 1 gurugram", "DLF Phase 1, Gurugram 122002"],
+  ["dlf phase 2 gurugram", "DLF Phase 2, Gurugram 122008"],
+  ["cyber city gurugram", "Cyber City, Gurugram 122002"],
+  ["sohna road gurugram", "Sohna Road, Gurugram 122018"],
+  ["sector 18 noida", "Sector 18, Noida 201301"],
+  ["sector 62 noida", "Sector 62, Noida 201309"],
+  ["sector 50 noida", "Sector 50, Noida 201301"],
+  ["sector 137 noida", "Sector 137, Noida 201305"],
+  ["greater noida west", "Greater Noida West 201306"],
+  ["connaught place delhi", "Connaught Place, Delhi 110001"],
+  ["saket delhi", "Saket, Delhi 110017"],
+  ["dwarka delhi", "Dwarka, Delhi 110075"],
+  ["rohini delhi", "Rohini, Delhi 110085"],
+  ["janakpuri delhi", "Janakpuri, Delhi 110058"],
+  ["lajpat nagar delhi", "Lajpat Nagar, Delhi 110024"],
+  ["karol bagh delhi", "Karol Bagh, Delhi 110005"],
+  ["preet vihar delhi", "Preet Vihar, Delhi 110092"],
+  ["ghaziabad indirapuram", "Indirapuram, Ghaziabad 201014"],
+  ["faridabad sector 15", "Sector 15, Faridabad 121007"]
+];
 
 const emptyForm = {
   name: "",
   phone: "",
   location: "",
+  requirement: "",
+  directPrice: "",
   category: [],
   buyingDriver: [],
   techKnowledge: [],
   decisionMaker: [],
   brandTier: [],
+  desiredBrand: [],
   walkoutReason: [],
   competitor: [],
   priceGap: [],
   financialHook: [],
-  urgency: []
+  storeSource: []
 };
 
 const navItems = [
@@ -100,6 +129,21 @@ function displayValue(value, fallback = "Not captured") {
   return values.length ? values.join(", ") : fallback;
 }
 
+function normalizeText(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function resolveLocation(value) {
+  const normalized = normalizeText(value);
+  const match = locationSuggestions.find(([key]) => normalized.includes(normalizeText(key)) || normalizeText(key).includes(normalized));
+  return match && normalized.length > 6 ? match[1] : value;
+}
+
+function numericPrice(value) {
+  const parsed = Number(String(value || "").replace(/[^0-9]/g, ""));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 function countChoices(items, field) {
   const counts = items.reduce((acc, item) => {
     asArray(item[field]).forEach((choice) => {
@@ -129,7 +173,7 @@ function isWithinRange(customer, range) {
 }
 
 function generatePersona(form) {
-  if (hasChoice(form.urgency, "Today/Immediate")) return `Urgent ${primaryChoice(form.buyingDriver, "Buyer")}`;
+  if (hasChoice(form.category, "Gaming")) return "Gaming Seeker";
   if (hasChoice(form.buyingDriver, "Corporate")) return "Corporate Buyer";
   if (hasChoice(form.techKnowledge, "Needs Guidance")) return "Guided Shopper";
   if (hasChoice(form.brandTier, "Premium")) return "Premium Seeker";
@@ -137,7 +181,10 @@ function generatePersona(form) {
   return `${primaryChoice(form.brandTier, "Retail")} ${primaryChoice(form.buyingDriver, "Buyer")}`;
 }
 
-function estimatedValueFor(category, brandTier) {
+function estimatedValueFor(category, brandTier, directPrice = "") {
+  const direct = numericPrice(directPrice);
+  if (direct) return direct;
+
   const selectedCategory = primaryChoice(category, "Mobile/Smartwatch");
   const selectedTier = primaryChoice(brandTier, "Mainstream");
   const valueMap = {
@@ -191,29 +238,28 @@ function triggerFit(customer, campaign) {
   const reasons = [];
 
   if (campaign.categoryFilter !== anyOption && !hasChoice(customer.category, campaign.categoryFilter)) return null;
-  if (campaign.urgencyFilter !== anyOption && !hasChoice(customer.urgency, campaign.urgencyFilter)) return null;
   if (campaign.brandFilter !== anyOption && !hasChoice(customer.brandTier, campaign.brandFilter)) return null;
   if (campaign.driverFilter !== anyOption && !hasChoice(customer.buyingDriver, campaign.driverFilter)) return null;
 
   if (campaign.triggerType === "New Card Discount") {
-    if (hasChoice(customer.walkoutReason, "Finance/Card Issue")) reasons.push("finance issue");
+    if (hasChoice(customer.walkoutReason, "Card Issue")) reasons.push("card issue");
     if (hasChoice(customer.financialHook, "Credit Card Discount")) reasons.push("card discount hook");
   }
-  if (campaign.triggerType === "Stock Replenished" && hasChoice(customer.walkoutReason, "Color/Model Out of Stock")) {
-    reasons.push("stock walkout");
+  if (campaign.triggerType === "Stock Replenished" && (hasChoice(customer.walkoutReason, "Color Not Available") || hasChoice(customer.walkoutReason, "Model Not Available"))) {
+    reasons.push("availability issue");
   }
   if (campaign.triggerType === "Price Drop") {
     if (hasChoice(customer.walkoutReason, "Online Price Mismatch")) reasons.push("online price mismatch");
     if (!hasChoice(customer.priceGap, "Not a price issue")) reasons.push(`${displayValue(customer.priceGap)} price gap`);
   }
-  if (campaign.triggerType === "General Festival Offer" && !hasChoice(customer.urgency, "Window Shopping")) {
-    reasons.push("active purchase window");
+  if (campaign.triggerType === "General Festival Offer" && displayValue(customer.category, "") !== "") {
+    reasons.push("category captured");
   }
   if (campaign.triggerType === "Exchange Upgrade" && hasChoice(customer.financialHook, "Exchange Bonus")) {
     reasons.push("exchange bonus interest");
   }
   if (campaign.triggerType === "EMI Rescue") {
-    if (hasChoice(customer.walkoutReason, "Finance/Card Issue")) reasons.push("payment friction");
+    if (hasChoice(customer.walkoutReason, "Finance Issue")) reasons.push("finance issue");
     if (hasChoice(customer.financialHook, "No-Cost EMI")) reasons.push("EMI preference");
   }
   if (campaign.triggerType === "Competitor Winback" && !hasChoice(customer.competitor, "No comparison")) {
@@ -221,9 +267,6 @@ function triggerFit(customer, campaign) {
   }
   if (campaign.triggerType === "Premium Upgrade" && (hasChoice(customer.brandTier, "Premium") || hasChoice(customer.techKnowledge, "Status-Driven"))) {
     reasons.push(hasChoice(customer.brandTier, "Premium") ? "premium intent" : "status-driven buyer");
-  }
-  if (campaign.triggerType === "Urgency Recovery" && (hasChoice(customer.urgency, "Today/Immediate") || hasChoice(customer.urgency, "This Week"))) {
-    reasons.push(`${displayValue(customer.urgency)} urgency`);
   }
   if (campaign.triggerType === "Guidance Callback" && hasChoice(customer.techKnowledge, "Needs Guidance")) {
     reasons.push("needs guided consultation");
@@ -234,8 +277,6 @@ function triggerFit(customer, campaign) {
   const score =
     55 +
     reasons.length * 12 +
-    (hasChoice(customer.urgency, "Today/Immediate") ? 15 : 0) +
-    (hasChoice(customer.urgency, "This Week") ? 8 : 0) +
     (hasChoice(customer.priceGap, "Above 5%") ? 7 : 0) +
     (hasChoice(customer.brandTier, "Premium") ? 5 : 0);
 
@@ -248,12 +289,6 @@ function triggerFit(customer, campaign) {
 
 function campaignMessage(customer, campaignDetails, triggerType) {
   const detail = campaignDetails || triggerType;
-  const urgencyLine = {
-    "Today/Immediate": "I can keep this ready for you today itself.",
-    "This Week": "I can reserve the best available option for this week.",
-    "Next Week/Month": "I can share the current best option so you can decide comfortably.",
-    "Window Shopping": "I can send a quick shortlist whenever you are ready."
-  }[primaryChoice(customer.urgency, "Window Shopping")];
   const hookLine = {
     "Exchange Bonus": "We can also check an exchange bonus to improve your final price.",
     "No-Cost EMI": "We can include a no-cost EMI option in the quote.",
@@ -262,8 +297,10 @@ function campaignMessage(customer, campaignDetails, triggerType) {
   }[primaryChoice(customer.financialHook, "No-Cost EMI")];
   const objectionLine = {
     "Online Price Mismatch": "Since you were comparing online prices, I will include the current store-best offer.",
-    "Color/Model Out of Stock": "Since availability was the blocker, I will confirm the closest matching model/color before you visit.",
-    "Finance/Card Issue": "Since payment was the blocker, I will include finance options in the message.",
+    "Color Not Available": "Since color availability was the blocker, I will confirm matching color options before you visit.",
+    "Model Not Available": "Since model availability was the blocker, I will confirm the closest matching model before you visit.",
+    "Finance Issue": "Since finance approval was the blocker, I will include finance options in the message.",
+    "Card Issue": "Since card offer/payment was the blocker, I will include eligible card options.",
     "Just Browsing": "Since you were exploring options, I will keep this short and useful.",
     "Brand Preference": "Since brand preference mattered, I will share the closest matching option.",
     "Exchange Concern": "Since exchange value mattered, I will include the exchange estimate path.",
@@ -280,11 +317,10 @@ function campaignMessage(customer, campaignDetails, triggerType) {
     "EMI Rescue": "There is a payment-friendly option available now.",
     "Competitor Winback": "We can try to beat or match the value you saw elsewhere.",
     "Premium Upgrade": "There is a premium option that fits your preference.",
-    "Urgency Recovery": "This is timed for your purchase window.",
     "Guidance Callback": "A guided recommendation can help close the decision."
   }[triggerType];
 
-  return `Hi ${customer.name}, this is Reliance Digital. ${triggerLine} ${detail} for ${displayValue(customer.category)}. ${objectionLine} ${hookLine} ${urgencyLine} Reply YES and I will share the exact quote and availability.`;
+  return `Hi ${customer.name}, this is Reliance Digital. ${triggerLine} ${detail} for ${displayValue(customer.category)}. ${objectionLine} ${hookLine} Reply YES and I will share the exact quote and availability.`;
 }
 
 function App() {
@@ -298,7 +334,6 @@ function App() {
     triggerType: "New Card Discount",
     details: "Flat 10% off on HDFC Cards",
     categoryFilter: anyOption,
-    urgencyFilter: anyOption,
     brandFilter: anyOption,
     driverFilter: anyOption
   });
@@ -361,8 +396,6 @@ function App() {
     [dashboardCustomers]
   );
 
-  const urgentCount = dashboardCustomers.filter((customer) => hasChoice(customer.urgency, "Today/Immediate")).length;
-
   function updateForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -375,6 +408,10 @@ function App() {
         : [...values, option];
       return { ...current, [field]: nextValues };
     });
+  }
+
+  function updateLocation(value) {
+    setForm((current) => ({ ...current, location: resolveLocation(value) }));
   }
 
   async function submitInsight(event) {
@@ -390,7 +427,7 @@ function App() {
       personaTag: generatePersona(form),
       createdAt: "Just now",
       createdAtIso: new Date().toISOString(),
-      estimatedValue: estimatedValueFor(form.category, form.brandTier)
+      estimatedValue: estimatedValueFor(form.category, form.brandTier, form.directPrice)
     };
 
     const optimisticCustomers = [newCustomer, ...customers];
@@ -496,7 +533,6 @@ function App() {
                 setAnalyticsRange={setAnalyticsRange}
                 topWalkoutReason={topWalkoutReason}
                 revenueAtRisk={revenueAtRisk}
-                urgentCount={urgentCount}
                 onView={setSelectedCustomer}
               />
             )}
@@ -603,22 +639,29 @@ function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <TextField label="Customer Name" value={form.name} onChange={(value) => updateForm("name", value)} icon={UserRound} />
             <TextField label="Number" value={form.phone} onChange={(value) => updateForm("phone", value)} icon={Phone} inputMode="numeric" />
-            <TextField label="Pin Code / City" value={form.location} onChange={(value) => updateForm("location", value)} icon={Store} />
+            <TextField label="Location" value={form.location} onChange={updateLocation} icon={Store} list="location-options" />
+            <datalist id="location-options">
+              {locationSuggestions.map(([, label]) => (
+                <option key={label} value={label} />
+              ))}
+            </datalist>
             <MultiOptionField label="Q1. Product Category" value={form.category} options={categories} onToggle={(value) => toggleFormChoice("category", value)} />
             <MultiOptionField label="Q2. Buying Driver" value={form.buyingDriver} options={buyingDrivers} onToggle={(value) => toggleFormChoice("buyingDriver", value)} />
             <MultiOptionField label="Q3. Tech Knowledge" value={form.techKnowledge} options={techKnowledge} onToggle={(value) => toggleFormChoice("techKnowledge", value)} />
+            <TextField label="Open-ended Requirement" value={form.requirement} onChange={(value) => updateForm("requirement", value)} icon={ClipboardList} />
             <MultiOptionField label="Q4. Brand Tier" value={form.brandTier} options={brandTiers} onToggle={(value) => toggleFormChoice("brandTier", value)} />
-            <MultiOptionField label="Q5. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} />
-            <MultiOptionField label="Q6. Competitor" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} />
-            <MultiOptionField label="Q7. Price Gap (%)" value={form.priceGap} options={priceGaps} onToggle={(value) => toggleFormChoice("priceGap", value)} />
-            <MultiOptionField label="Q8. Financial Hook" value={form.financialHook} options={financialHooks} onToggle={(value) => toggleFormChoice("financialHook", value)} />
+            <MultiOptionField label="Q5. Desired Brand" value={form.desiredBrand} options={desiredBrands} onToggle={(value) => toggleFormChoice("desiredBrand", value)} />
+            <MultiOptionField label="Q6. Walkout Reason" value={form.walkoutReason} options={walkoutReasons} onToggle={(value) => toggleFormChoice("walkoutReason", value)} />
+            <MultiOptionField label="Q7. Competitor / Brand Store" value={form.competitor} options={competitors} onToggle={(value) => toggleFormChoice("competitor", value)} />
+            <TextField label="Direct Price Mentioned" value={form.directPrice} onChange={(value) => updateForm("directPrice", value)} icon={IndianRupee} inputMode="numeric" />
+            <MultiOptionField label="Q8. Store Discovery Source" value={form.storeSource} options={storeSources} onToggle={(value) => toggleFormChoice("storeSource", value)} />
+            <MultiOptionField label="Q9. Financial Hook" value={form.financialHook} options={financialHooks} onToggle={(value) => toggleFormChoice("financialHook", value)} />
             <div className="md:col-span-2 xl:col-span-3">
               <div className="rounded-lg border border-dashed border-reliance-line bg-reliance-sky px-4 py-3 text-sm font-bold text-reliance-deep">
                 Optional follow-up details
               </div>
             </div>
-            <MultiOptionField label="Q9. Decision Maker" value={form.decisionMaker} options={decisionMakers} onToggle={(value) => toggleFormChoice("decisionMaker", value)} optional />
-            <MultiOptionField label="Q10. Purchase Urgency" value={form.urgency} options={urgencies} onToggle={(value) => toggleFormChoice("urgency", value)} optional />
+            <MultiOptionField label="Q10. Decision Maker" value={form.decisionMaker} options={decisionMakers} onToggle={(value) => toggleFormChoice("decisionMaker", value)} optional />
           </div>
           <button
             type="submit"
@@ -633,7 +676,7 @@ function AgentPortal({ form, updateForm, toggleFormChoice, submitInsight }) {
   );
 }
 
-function TextField({ label, value, onChange, icon: Icon, inputMode = "text" }) {
+function TextField({ label, value, onChange, icon: Icon, inputMode = "text", list }) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-700">{label}</span>
@@ -643,6 +686,7 @@ function TextField({ label, value, onChange, icon: Icon, inputMode = "text" }) {
           value={value}
           onChange={(event) => onChange(event.target.value)}
           inputMode={inputMode}
+          list={list}
           className="min-w-0 flex-1 border-0 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
           placeholder={label}
         />
@@ -701,21 +745,21 @@ function MultiOptionField({ label, value, options, onToggle, optional = false })
   );
 }
 
-function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalyticsRange, topWalkoutReason, revenueAtRisk, urgentCount, onView }) {
-  const financeBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Finance/Card Issue")).length;
+function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalyticsRange, topWalkoutReason, revenueAtRisk, onView }) {
+  const financeBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Finance Issue")).length;
+  const cardBlockers = customers.filter((customer) => hasChoice(customer.walkoutReason, "Card Issue")).length;
   const highPriceGap = customers.filter((customer) => hasChoice(customer.priceGap, "Above 5%")).length;
-  const avgRisk = customers.length ? Math.round(revenueAtRisk / customers.length) : 0;
   const metrics = [
     { label: "Filtered Walkouts", value: customers.length, icon: UsersRound, note: `${allCustomers.length} total stored leads` },
     { label: "Top Walkout Reason", value: topWalkoutReason, icon: Search, note: "Highest frequency signal" },
     { label: "Revenue at Risk", value: rupees(revenueAtRisk), icon: IndianRupee, note: "Estimated basket value" },
-    { label: "Immediate Buyers", value: urgentCount, icon: TrendingUp, note: "Needs same-day recovery" }
+    { label: "Finance + Card Issues", value: financeBlockers + cardBlockers, icon: TrendingUp, note: "Payment friction cases" }
   ];
   const walkoutData = countChoices(customers, "walkoutReason");
   const categoryData = countChoices(customers, "category");
-  const urgencyData = countChoices(customers, "urgency");
   const brandData = countChoices(customers, "brandTier");
   const competitorData = countChoices(customers, "competitor");
+  const desiredBrandData = countChoices(customers, "desiredBrand");
 
   return (
     <SectionShell
@@ -758,8 +802,8 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
-        <InsightCard label="Average Risk Per Lead" value={rupees(avgRisk)} helper="Revenue risk divided by filtered leads" />
-        <InsightCard label="Finance Blockers" value={financeBlockers} helper="Customers blocked by card, EMI, or approval friction" />
+        <InsightCard label="Finance Issues" value={financeBlockers} helper="Customers blocked by loan, EMI, or approval friction" />
+        <InsightCard label="Card Issues" value={cardBlockers} helper="Customers blocked by card offer or payment eligibility" />
         <InsightCard label="High Price-Gap Cases" value={highPriceGap} helper="Above 5% price mismatch signals" />
       </div>
 
@@ -773,11 +817,11 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <ChartPanel title="Purchase Urgency" subtitle="Prioritize same-day and weekly recovery">
-          <HorizontalBars data={urgencyData} />
-        </ChartPanel>
         <ChartPanel title="Brand Tier Intent" subtitle="Premium, mainstream and budget split">
           <HorizontalBars data={brandData} />
+        </ChartPanel>
+        <ChartPanel title="Desired Brand Preference" subtitle="Brands customers explicitly asked for">
+          <HorizontalBars data={desiredBrandData} />
         </ChartPanel>
       </div>
 
@@ -808,7 +852,7 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Persona Tag</th>
                 <th className="px-4 py-3">Walkout Reason</th>
-                <th className="px-4 py-3">Urgency</th>
+                <th className="px-4 py-3">Desired Brand</th>
                 <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
@@ -828,8 +872,8 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-700">{displayValue(customer.walkoutReason)}</td>
                   <td className="px-4 py-4">
-                    <span className={`inline-flex rounded-lg px-3 py-1 text-sm font-bold ${hasChoice(customer.urgency, "Today/Immediate") ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}>
-                      {displayValue(customer.urgency)}
+                    <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700">
+                      {displayValue(customer.desiredBrand)}
                     </span>
                   </td>
                   <td className="px-4 py-4">
@@ -993,16 +1037,19 @@ function ProfileModal({ customer, onClose }) {
   const detailRows = [
     ["WhatsApp", customer.phone],
     ["City / Pin Code", customer.location || "Not captured"],
+    ["Requirement", customer.requirement || "Not captured"],
+    ["Direct Price", customer.directPrice ? rupees(numericPrice(customer.directPrice)) : "Not captured"],
     ["Product Category", displayValue(customer.category)],
     ["Buying Driver", displayValue(customer.buyingDriver)],
     ["Tech Knowledge", displayValue(customer.techKnowledge)],
     ["Decision Maker", displayValue(customer.decisionMaker)],
     ["Brand Tier", displayValue(customer.brandTier)],
+    ["Desired Brand", displayValue(customer.desiredBrand)],
     ["Walkout Reason", displayValue(customer.walkoutReason)],
     ["Competitor", displayValue(customer.competitor)],
     ["Price Gap", displayValue(customer.priceGap)],
     ["Financial Hook", displayValue(customer.financialHook)],
-    ["Purchase Urgency", displayValue(customer.urgency)]
+    ["Store Discovery", displayValue(customer.storeSource)]
   ];
 
   return (
@@ -1101,7 +1148,6 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
               <p className="mt-1 text-xs leading-5 text-slate-500">Optional filters narrow the cohort after the trigger logic runs.</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <SelectField label="Category" value={campaign.categoryFilter} options={[anyOption, ...categories]} onChange={(value) => updateCampaign("categoryFilter", value)} />
-                <SelectField label="Urgency" value={campaign.urgencyFilter} options={[anyOption, ...urgencies]} onChange={(value) => updateCampaign("urgencyFilter", value)} />
                 <SelectField label="Brand Tier" value={campaign.brandFilter} options={[anyOption, ...brandTiers]} onChange={(value) => updateCampaign("brandFilter", value)} />
                 <SelectField label="Buying Driver" value={campaign.driverFilter} options={[anyOption, ...buyingDrivers]} onChange={(value) => updateCampaign("driverFilter", value)} />
               </div>
@@ -1110,7 +1156,7 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
               <div className="rounded-lg bg-reliance-sky px-3 py-2 text-reliance-deep">Finance: card + EMI blockers</div>
               <div className="rounded-lg bg-reliance-sky px-3 py-2 text-reliance-deep">Inventory: stock replenished</div>
               <div className="rounded-lg bg-reliance-sky px-3 py-2 text-reliance-deep">Winback: competitor comparison</div>
-              <div className="rounded-lg bg-reliance-sky px-3 py-2 text-reliance-deep">Intent: urgency + premium signals</div>
+              <div className="rounded-lg bg-reliance-sky px-3 py-2 text-reliance-deep">Intent: brand + premium signals</div>
             </div>
             <button
               type="button"
@@ -1159,7 +1205,7 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
                     </div>
                     <p className="mt-1 text-sm text-slate-500">{displayValue(customer.category)} - {displayValue(customer.walkoutReason)} - {displayValue(customer.financialHook)}</p>
                   </div>
-                  <span className="inline-flex w-fit rounded-lg bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700">{displayValue(customer.urgency)}</span>
+                  <span className="inline-flex w-fit rounded-lg bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700">{displayValue(customer.desiredBrand)}</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {customer.matchReasons.map((reason) => (

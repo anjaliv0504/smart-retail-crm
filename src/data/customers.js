@@ -77,14 +77,37 @@ function valueFor(category, tier) {
 }
 
 function personaFor(row) {
-  const [, , , category, driver, knowledge, , tier, reason, , , , urgency] = row;
-  if (urgency === "Today/Immediate") return `Urgent ${driver || "Buyer"}`;
+  const [, , , category, driver, knowledge, , tier, reason] = row;
   if (category === "Gaming") return "Gaming Seeker";
   if (driver === "Corporate") return "Corporate Buyer";
   if (knowledge === "Needs Guidance") return "Guided Shopper";
   if (tier === "Premium") return "Premium Seeker";
   if (reason === "Online Price Mismatch" || reason === "Price Sensitive") return "Price Watcher";
   return `${tier || "Retail"} ${driver || "Buyer"}`;
+}
+
+function normalizeReason(reason, index) {
+  if (reason === "Finance/Card Issue") return index % 2 ? "Card Issue" : "Finance Issue";
+  if (reason === "Color/Model Out of Stock" || reason === "Stock Issue") return index % 2 ? "Color Not Available" : "Model Not Available";
+  if (reason === "Price Sensitive") return "Online Price Mismatch";
+  return reason;
+}
+
+function desiredBrandFor(row) {
+  const category = row[3];
+  const competitor = row[9];
+  if (competitor === "Apple Store") return "Apple";
+  if (competitor.includes("Samsung")) return "Samsung";
+  if (category === "Gaming") return "Asus";
+  if (category === "TV/Audio") return "Sony";
+  if (category === "Home Appliances") return "LG";
+  if (category === "Laptop/IT" && row[7] === "Premium") return "Apple";
+  if (category === "Laptop/IT") return "HP";
+  return "Undecided";
+}
+
+function storeSourceFor(index) {
+  return ["Walk-in", "Google Search", "Mall/Store Signage", "Friend/Family Referral"][index % 4];
 }
 
 function labelForDay(days) {
@@ -101,11 +124,14 @@ export const initialCustomers = seedRows.map((row, index) => ({
   techKnowledge: row[5],
   decisionMaker: row[6],
   brandTier: row[7],
-  walkoutReason: row[8],
+  desiredBrand: index % 6 === 0 ? "" : desiredBrandFor(row),
+  walkoutReason: normalizeReason(row[8], index),
   competitor: row[9],
   priceGap: row[10],
   financialHook: row[11],
-  urgency: row[12],
+  storeSource: storeSourceFor(index),
+  requirement: index % 7 === 0 ? "" : `${row[3]} enquiry`,
+  directPrice: "",
   personaTag: personaFor(row),
   estimatedValue: valueFor(row[3], row[7]),
   createdAtIso: daysAgo(row[13]),
