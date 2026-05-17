@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   BadgeIndianRupee,
   BarChart3,
@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
+  Command,
   IndianRupee,
   Megaphone,
   MessageCircle,
@@ -22,6 +23,8 @@ import {
   X
 } from "lucide-react";
 import { initialCustomers } from "./data/customers.js";
+
+const CentralManagement = lazy(() => import("./central-management/CentralManagement.jsx"));
 
 const categories = ["Mobile", "Wearables", "Laptop/IT", "Home Appliances", "Gaming", "New Age Gadgets"];
 const buyingDrivers = ["Corporate", "Family", "Individual", "Deal-Hunter", "Student", "Gift Purchase"];
@@ -202,7 +205,8 @@ const emptyForm = {
 const navItems = [
   { key: "agent", label: "Agent Input Portal", icon: ClipboardList },
   { key: "dashboard", label: "Manager Dashboard", icon: BarChart3 },
-  { key: "engine", label: "Auto-Targeting Engine", icon: BrainCircuit }
+  { key: "engine", label: "Auto-Targeting Engine", icon: BrainCircuit },
+  { key: "central", label: "Central Management", icon: Command }
 ];
 
 function rupees(value) {
@@ -712,7 +716,7 @@ function App() {
                 {customers.length} active leads
               </div>
             </div>
-            <nav className="mt-3 grid grid-cols-3 gap-2 lg:hidden">
+            <nav className="mt-3 grid grid-cols-4 gap-2 lg:hidden">
               {navItems.map((item) => (
                 <button
                   key={item.key}
@@ -757,6 +761,11 @@ function App() {
                 hasRunCampaign={hasRunCampaign}
                 runMatchingAlgorithm={runMatchingAlgorithm}
               />
+            )}
+            {activePanel === "central" && (
+              <Suspense fallback={<div className="rounded-lg border border-reliance-line bg-white p-6 text-sm font-bold text-slate-500 shadow-sm">Loading Central Management...</div>}>
+                <CentralManagement customers={customers} />
+              </Suspense>
             )}
           </div>
         </main>
