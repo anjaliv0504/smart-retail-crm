@@ -45,6 +45,17 @@ const triggerTypes = [
   "Premium Upgrade",
   "Guidance Callback"
 ];
+const campaignExamples = {
+  "New Card Discount": "Extra 10% instant discount on HDFC, ICICI and Axis cards this weekend",
+  "Stock Replenished": "iPhone 15 Pro Titanium and selected Samsung Bespoke models are back in stock",
+  "Price Drop": "Store price revised today with an additional exchange-backed saving",
+  "General Festival Offer": "Reliance Digital weekend festival offer with bundle savings and priority delivery",
+  "Exchange Upgrade": "Exchange bonus upgraded up to Rs 8,000 on eligible old devices",
+  "EMI Rescue": "Zero down-payment and no-cost EMI options available on selected products",
+  "Competitor Winback": "Store-best quote available for customers comparing Croma, Vijay Sales or online prices",
+  "Premium Upgrade": "Premium model upgrade offer with extended warranty and setup support",
+  "Guidance Callback": "Free expert callback for product comparison and final model selection"
+};
 const anyOption = "Any";
 
 const locationSuggestions = [
@@ -257,6 +268,15 @@ function customerDate(customer) {
   return customer.createdAtIso ? new Date(customer.createdAtIso) : new Date();
 }
 
+function weekdayLabel(date = new Date()) {
+  return date.toLocaleDateString("en-IN", { weekday: "long" });
+}
+
+function displayCreatedAt(customer) {
+  if (customer.createdAt === "Just now") return weekdayLabel(customerDate(customer));
+  return customer.createdAt || weekdayLabel(customerDate(customer));
+}
+
 function isWithinRange(customer, range) {
   if (range === "all") return true;
   const now = new Date();
@@ -391,6 +411,7 @@ function triggerFit(customer, campaign) {
 
 function campaignMessage(customer, campaignDetails, triggerType) {
   const detail = campaignDetails || triggerType;
+  const variant = Number(customer.id || 0) % 4;
   const hookLine = {
     "Exchange Bonus": "We can also check an exchange bonus to improve your final price.",
     "No-Cost EMI": "We can include a no-cost EMI option in the quote.",
@@ -423,7 +444,26 @@ function campaignMessage(customer, campaignDetails, triggerType) {
     "Guidance Callback": "A guided recommendation can help close the decision."
   }[triggerType];
 
-  return `Hi ${customer.name}, this is Reliance Digital. ${triggerLine} ${detail} for ${displayValue(customer.category)}. ${objectionLine} ${hookLine} Reply YES and I will share the exact quote and availability.`;
+  const openings = [
+    `Hi ${customer.name}, this is Reliance Digital.`,
+    `Hello ${customer.name}, Reliance Digital here.`,
+    `Hi ${customer.name}, quick update from Reliance Digital.`,
+    `Hello ${customer.name}, following up on your Reliance Digital visit.`
+  ];
+  const closings = [
+    "Reply YES and I will share the exact quote and availability.",
+    "Reply YES and our store team will keep the best option ready.",
+    "Reply INTERESTED and I will send the final price and next steps.",
+    "Reply YES to get the exact offer, stock status and payment option."
+  ];
+  const middle = [
+    `${triggerLine} ${detail} for ${displayValue(customer.category)}.`,
+    `${detail} is now available for ${displayValue(customer.category)} buyers.`,
+    `There is a relevant update on ${displayValue(customer.category)}: ${detail}.`,
+    `We found a better-fit option for your ${displayValue(customer.category)} requirement: ${detail}.`
+  ];
+
+  return `${openings[variant]} ${middle[variant]} ${objectionLine} ${hookLine} ${closings[variant]}`;
 }
 
 async function sendWhatsAppMessage({ phone, message, customerName }) {
@@ -439,6 +479,19 @@ async function sendWhatsAppMessage({ phone, message, customerName }) {
   return data;
 }
 
+async function generateLlmDraft({ customer, campaign, currentDraft }) {
+  const response = await fetch("/api/generate-message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customer, campaign, currentDraft })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || data.error || "Draft generation failed");
+  }
+  return data.message;
+}
+
 function App() {
   const [activePanel, setActivePanel] = useState("agent");
   const [customers, setCustomers] = useState(initialCustomers);
@@ -448,7 +501,7 @@ function App() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [campaign, setCampaign] = useState({
     triggerType: "New Card Discount",
-    details: "Flat 10% off on HDFC Cards",
+    details: campaignExamples["New Card Discount"],
     categoryFilter: anyOption,
     brandFilter: anyOption,
     driverFilter: anyOption
@@ -494,7 +547,9 @@ function App() {
   }, []);
 
   const dashboardCustomers = useMemo(
-    () => customers.filter((customer) => isWithinRange(customer, analyticsRange)),
+    () => customers
+      .filter((customer) => isWithinRange(customer, analyticsRange))
+      .sort((a, b) => customerDate(b).getTime() - customerDate(a).getTime()),
     [customers, analyticsRange]
   );
 
@@ -552,7 +607,7 @@ function App() {
       name,
       phone,
       personaTag: generatePersona(form),
-      createdAt: "Just now",
+      createdAt: weekdayLabel(),
       createdAtIso: new Date().toISOString(),
       estimatedValue: estimatedValueFor(form.category, form.brandTier, form.priceMismatchRange)
     };
@@ -1064,7 +1119,7 @@ function ManagerDashboard({ customers, allCustomers, analyticsRange, setAnalytic
                 <tr key={customer.id} className="bg-white align-middle transition hover:bg-slate-50">
                   <td className="px-4 py-4">
                     <div className="font-bold text-slate-900">{customer.name}</div>
-                    <div className="text-xs text-slate-500">{customer.createdAt}</div>
+                    <div className="text-xs text-slate-500">{displayCreatedAt(customer)}</div>
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-700">{customer.location || "Not captured"}</td>
                   <td className="px-4 py-4 text-sm font-medium text-slate-700">{displayValue(customer.category)}</td>
@@ -1345,12 +1400,48 @@ function ProfileModal({ customer, onClose }) {
 }
 
 function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMatchingAlgorithm }) {
-  const updateCampaign = (field, value) => setCampaign((current) => ({ ...current, [field]: value }));
+  const updateCampaign = (field, value) => {
+    setCampaign((current) => ({ ...current, [field]: value }));
+    if (field === "details") {
+      setMessageDrafts({});
+      setDraftStates({});
+    }
+  };
   const [sendStates, setSendStates] = useState({});
   const [bulkState, setBulkState] = useState({ status: "idle", message: "" });
+  const [messageDrafts, setMessageDrafts] = useState({});
+  const [draftStates, setDraftStates] = useState({});
+
+  function updateTriggerType(value) {
+    setCampaign((current) => ({
+      ...current,
+      triggerType: value,
+      details: campaignExamples[value] || current.details
+    }));
+    setMessageDrafts({});
+    setDraftStates({});
+  }
+
+  function draftFor(customer) {
+    return messageDrafts[customer.id] || campaignMessage(customer, campaign.details, campaign.triggerType);
+  }
+
+  async function regenerateDraft(customer) {
+    const currentDraft = draftFor(customer);
+    setDraftStates((current) => ({ ...current, [customer.id]: { status: "generating", message: "Generating..." } }));
+    try {
+      const message = await generateLlmDraft({ customer, campaign, currentDraft });
+      setMessageDrafts((current) => ({ ...current, [customer.id]: message }));
+      setDraftStates((current) => ({ ...current, [customer.id]: { status: "ready", message: "AI draft ready" } }));
+    } catch (error) {
+      const fallback = campaignMessage({ ...customer, id: Number(customer.id || 0) + Date.now() }, campaign.details, campaign.triggerType);
+      setMessageDrafts((current) => ({ ...current, [customer.id]: fallback }));
+      setDraftStates((current) => ({ ...current, [customer.id]: { status: "fallback", message: `Fallback draft used: ${error.message}` } }));
+    }
+  }
 
   async function sendCampaignCustomer(customer) {
-    const message = campaignMessage(customer, campaign.details, campaign.triggerType);
+    const message = draftFor(customer);
     setSendStates((current) => ({ ...current, [customer.id]: { status: "sending", message: "Sending..." } }));
     try {
       const result = await sendWhatsAppMessage({ phone: customer.phone, message, customerName: customer.name });
@@ -1407,7 +1498,7 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
               label="Trigger Type"
               value={campaign.triggerType}
               options={triggerTypes}
-              onChange={(value) => updateCampaign("triggerType", value)}
+              onChange={updateTriggerType}
             />
             <label className="block">
               <span className="text-sm font-semibold text-slate-700">Campaign Details</span>
@@ -1415,8 +1506,15 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
                 value={campaign.details}
                 onChange={(event) => updateCampaign("details", event.target.value)}
                 className="mt-2 h-12 w-full rounded-lg border border-reliance-line bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-reliance-blue focus:ring-4 focus:ring-blue-100"
-                placeholder="Flat 10% off on HDFC Cards"
+                placeholder={campaignExamples[campaign.triggerType]}
               />
+              <button
+                type="button"
+                onClick={() => updateCampaign("details", campaignExamples[campaign.triggerType])}
+                className="mt-2 text-left text-xs font-bold text-reliance-blue hover:text-reliance-deep"
+              >
+                Use sample: {campaignExamples[campaign.triggerType]}
+              </button>
             </label>
             <div className="rounded-lg border border-reliance-line bg-slate-50 p-4">
               <p className="text-sm font-bold text-slate-950">Audience Refinement</p>
@@ -1498,17 +1596,35 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
                 <div className="mt-4 rounded-lg border border-reliance-line bg-slate-50 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Auto-Drafted Personalized WhatsApp</p>
-                    <button
-                      type="button"
-                      onClick={() => sendCampaignCustomer(customer)}
-                      disabled={sendStates[customer.id]?.status === "sending"}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-reliance-blue px-3 text-xs font-bold text-white enabled:hover:bg-reliance-deep disabled:cursor-wait disabled:bg-slate-400"
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                      {sendStates[customer.id]?.status === "sending" ? "Sending" : "Send"}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => regenerateDraft(customer)}
+                        disabled={draftStates[customer.id]?.status === "generating"}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-reliance-blue bg-white px-3 text-xs font-bold text-reliance-blue enabled:hover:bg-reliance-sky disabled:cursor-wait disabled:opacity-60"
+                      >
+                        <BrainCircuit className="h-3.5 w-3.5" />
+                        {draftStates[customer.id]?.status === "generating" ? "Regenerating" : "Regenerate"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => sendCampaignCustomer(customer)}
+                        disabled={sendStates[customer.id]?.status === "sending"}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-reliance-blue px-3 text-xs font-bold text-white enabled:hover:bg-reliance-deep disabled:cursor-wait disabled:bg-slate-400"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        {sendStates[customer.id]?.status === "sending" ? "Sending" : "Send"}
+                      </button>
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{campaignMessage(customer, campaign.details, campaign.triggerType)}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{draftFor(customer)}</p>
+                  {draftStates[customer.id]?.message && (
+                    <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold ${
+                      draftStates[customer.id]?.status === "fallback" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-reliance-deep"
+                    }`}>
+                      {draftStates[customer.id].message}
+                    </p>
+                  )}
                   {sendStates[customer.id]?.message && (
                     <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold ${
                       sendStates[customer.id]?.status === "error" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
