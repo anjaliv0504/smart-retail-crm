@@ -221,6 +221,11 @@ function cleanPhone(phone) {
   return phone.replace(/\D/g, "").slice(-10);
 }
 
+function smsUrl(phone, message) {
+  const number = cleanPhone(phone);
+  return `sms:+91${number}?&body=${encodeURIComponent(message)}`;
+}
+
 function asArray(value) {
   if (Array.isArray(value)) return value;
   if (!value) return [];
@@ -1312,6 +1317,7 @@ function HorizontalBars({ data }) {
 function ProfileModal({ customer, onClose }) {
   const message = profileMessage(customer);
   const waUrl = `https://wa.me/91${cleanPhone(customer.phone)}?text=${encodeURIComponent(message)}`;
+  const textUrl = smsUrl(customer.phone, message);
   const [sendState, setSendState] = useState({ status: "idle", message: "" });
   const detailRows = [
     ["WhatsApp", customer.phone],
@@ -1375,16 +1381,23 @@ function ProfileModal({ customer, onClose }) {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white text-reliance-blue">
               <MessageCircle className="h-5 w-5" />
             </div>
-            <h4 className="mt-4 text-lg font-bold text-slate-950">WhatsApp Draft</h4>
+            <h4 className="mt-4 text-lg font-bold text-slate-950">Message Draft</h4>
             <p className="mt-3 rounded-lg bg-white p-3 text-sm leading-6 text-slate-700">{message}</p>
+            <a
+              href={textUrl}
+              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
+            >
+              <Send className="h-4 w-4" />
+              Send SMS
+            </a>
             <button
               type="button"
               onClick={sendFromPortal}
               disabled={sendState.status === "sending"}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-reliance-blue px-4 text-sm font-bold text-white transition enabled:hover:bg-reliance-deep disabled:cursor-wait disabled:bg-slate-400"
+              className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-reliance-blue px-4 text-sm font-bold text-white transition enabled:hover:bg-reliance-deep disabled:cursor-wait disabled:bg-slate-400"
             >
               <Send className="h-4 w-4" />
-              {sendState.status === "sending" ? "Sending..." : "Send from Portal"}
+              {sendState.status === "sending" ? "Sending..." : "Send WhatsApp from Portal"}
             </button>
             <a
               href={waUrl}
@@ -1604,7 +1617,7 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
                 </div>
                 <div className="mt-4 rounded-lg border border-reliance-line bg-slate-50 p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Auto-Drafted Personalized WhatsApp</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Auto-Drafted Personalized Message</p>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
@@ -1615,6 +1628,13 @@ function MarketingEngine({ campaign, setCampaign, matches, hasRunCampaign, runMa
                         <BrainCircuit className="h-3.5 w-3.5" />
                         {draftStates[customer.id]?.status === "generating" ? "Regenerating" : "Regenerate"}
                       </button>
+                      <a
+                        href={smsUrl(customer.phone, draftFor(customer))}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white hover:bg-slate-800"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        Send SMS
+                      </a>
                       <button
                         type="button"
                         onClick={() => sendCampaignCustomer(customer)}
